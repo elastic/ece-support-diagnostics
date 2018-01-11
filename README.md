@@ -51,3 +51,16 @@ The standard basic set of information (system and docker level) can be gathered 
 ```
 ./diagnostics.sh -d -s
 ```
+
+### Using a custom storage path
+If you've installed ECE using a STORAGE_PATH different than default (`/mnt/data/elastic`), please make sure to pass the below flag to the diagnostics script:
+
+```
+./diagnostics.sh -d -s -sp /my/custom/storage/path
+```
+
+
+## Output
+Diagnostic output archive will be written to /tmp folder with file name ece_diag-<ECE_host_IP>-<Timestamp>.tar.gz
+Once you have the file please provide it to your designated support agent, by attaching it to the support case.
+
