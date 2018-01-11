@@ -8,7 +8,7 @@ docker_logs_folder=$docker_folder/logs
 
 
 ece_host=localhost
-ece_port=12400a
+ece_port=12400
 protocol=http
 user=
 password=
