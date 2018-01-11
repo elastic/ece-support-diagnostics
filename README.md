@@ -2,7 +2,7 @@
 
 ## Description
 
-The support diagnostic utility is a bash script that will gather ECE logs, metrics and information on the the host where the ECE instance is running; the resulting archive file can be then provided to Elastic support for troubleshooting and investigation purposes.
+The support diagnostic utility is a bash script that you can use to gather ECE logs, metrics and information directly on the the host where the ECE instance is running; the resulting archive file can be then provided to Elastic support for troubleshooting and investigation purposes.
 
 ## How to use
 
@@ -41,4 +41,13 @@ Sample usage:
 
 Tue Sep  5 13:16:56 CEST 2017 [INFO]:  ECE Diagnostics 
 Tue Sep  5 13:16:57 CEST 2017 [INFO]:  Nothing to do.
+```
+
+## What flags to use?
+
+### Basic
+The standard basic set of information (system and docker level) can be gathered with:
+
+```
+./diagnostics.sh -d -s
 ```
