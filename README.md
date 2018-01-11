@@ -61,6 +61,6 @@ If you've installed ECE using a STORAGE_PATH different than default (`/mnt/data/
 
 
 ## Output
-Diagnostic output archive will be written to /tmp folder with file name ece_diag-<ECE_host_IP>-<Timestamp>.tar.gz
+Diagnostic output archive will be written to /tmp folder with file name ece_diag-<ECE_host_IP>-<Timestamp>.tar.gz  
 Once you have the file please provide it to your designated support agent, by attaching it to the support case.
 
