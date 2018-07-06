@@ -325,7 +325,7 @@ else
 		    if [ -z "$2" ]; then
                         die 'ERROR: "-e|--ecehost" requires a hostname/ip value.'
                     	else
-                        	ecehost=$2
+                        	ece_host=$2
 				shift
 		    fi
 		    ;;
