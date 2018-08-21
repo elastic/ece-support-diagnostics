@@ -11,6 +11,9 @@ The support diagnostic utility is a bash script that you can use to gather ECE l
 * run as ECE installation owner.
 * using options that make use of REST calls ( -a, -c ) will require ECE user credentials (-u readonly -p \<password\>)
 * note `curl` is required when using REST related calls ( -a, -c options )
+* repeat for each ECE host relevant to the issue and all hosts with the director role 
+
+Comparing the state of a broken node with the state of the directors is often necessary to pinpoint where the root cause is and fixing the root cause will often allow other problems to self heal.
 
 
 ## Sample execution
