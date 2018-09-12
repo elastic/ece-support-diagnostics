@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
+output_path=/tmp
 diag_name=ece_diag_$(hostname)_$(date "+%d_%b_%Y_%H_%M_%S")
-diag_folder=/tmp/$diag_name
+diag_folder=$output_path/$diag_name
 elastic_folder=$diag_folder/elastic
 docker_folder=$diag_folder/docker
 docker_logs_folder=$docker_folder/logs
-
 
 ece_host=localhost
 ece_port=12400
@@ -16,7 +16,6 @@ cluster_id=
 missing_creds=
 actions=
 storage_path=/mnt/data/elastic
-
 
 create_folders(){
 	while :; do
@@ -60,8 +59,8 @@ create_archive(){
 	if [ -d $diag_folder ]
 		then
 			print_msg "Compressing diag file..." "INFO"
-                        cd /tmp && tar czf $diag_name.tar.gz $diag_name/* 2>&1
-                        print_msg "Diag ready at /tmp/$diag_name.tar.gz" "INFO"
+                        cd $output_path && tar czf $diag_name.tar.gz $diag_name/* 2>&1
+                        print_msg "Diag ready at $output_path/$diag_name.tar.gz" "INFO"
                 else
                         print_msg "Nothing to do." "INFO"
 			exit 1
@@ -84,6 +83,7 @@ show_help(){
 	echo "-s|--system #collects elastic logs and system information"
 	echo "-d|--docker #collects docker information"
 	echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
+	echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
 	echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster"
 	echo "-a|--allocators #gathers allocators information (user/pass required)"
 	echo "-u|--username <username>"
@@ -317,7 +317,19 @@ else
 		    if [ -z "$2" ]; then
                         die 'ERROR: "-sp|--storage-path" requires a valid full filesystem path to custom storage'
                         else
-                    		storage_path=$2 
+                    		storage_path=$2
+                                shift
+                    fi
+                    ;;
+		    -o|--output-path)
+		    if [ -z "$2" ]; then
+                        die 'ERROR: "-o|--output-path" requires a valid full filesystem path'
+                        else
+                    		output_path=$2 
+				diag_folder=$output_path/$diag_name
+				elastic_folder=$diag_folder/elastic
+				docker_folder=$diag_folder/docker
+				docker_logs_folder=$docker_folder/logs
                                 shift
                     fi
                     ;;
