@@ -184,7 +184,7 @@ get_docker(){
 
 	print_msg "Grabbing docker images..." "INFO"
 	# output of docker info
-	docker images --all > $docker_folder/images.txt 2>&1
+	docker images --all --digests > $docker_folder/images.txt 2>&1
 
 	i=5
 	print_msg "Grabbing $i repeated container stats..." "INFO"
