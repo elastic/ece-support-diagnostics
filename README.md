@@ -27,13 +27,16 @@ Options:
 -e|--ecehost #Specifies ip/hostname of the ECE (default:localhost)
 -y|--protocol <http/https> #Specifies use of http/https (default:http)
 -x|--port <port> #Specifies ECE port (default:12400)
--s|--system #collects elastic and system information
--d|--docker #collects docker level information
+-s|--system #collects elastic logs and system information
+-d|--docker #collects docker information
 -sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system
+-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)
 -c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster
 -a|--allocators #gathers allocators information (user/pass required)
 -u|--username <username>
 -p|--password <password>
+
+
 
 Sample usage:
 "./diagnostics.sh -d -s" #collects system and docker level info
