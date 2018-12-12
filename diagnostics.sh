@@ -117,6 +117,10 @@ get_system(){
 	sudo iptables -L > $elastic_folder/iptables.txt 2>&1
 	sudo route -n > $elastic_folder/routes.txt 2>&1
 
+	#mounts
+	sudo mount > $elastic_folder/mounts.txt 2>&1
+	sudo cat /etc/fstab > $elastic_folder/fstab.txt 2>&1
+
 	#fs permissions
 	get_fs_permissions
 
