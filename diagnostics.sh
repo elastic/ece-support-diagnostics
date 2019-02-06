@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-VERSION=1.0.0
 output_path=/tmp
 diag_name=ece_diag_$(hostname)_$(date "+%d_%b_%Y_%H_%M_%S")
 diag_folder=$output_path/$diag_name
@@ -22,7 +21,7 @@ create_folders(){
 	while :; do
         	case $1 in
         		system)
-			mkdir -p $elastic_folder
+			mkdir -p $elastic_folder                
 			;;
 			docker)
 			mkdir -p $docker_logs_folder
@@ -39,7 +38,7 @@ create_folders(){
             		--) # End of all options.
             		shift
 			break
-			;;
+			;;	
 			*) # Default case: No more options, so break out of the loop.
                 	break
 		esac
@@ -49,14 +48,14 @@ create_folders(){
 
 clean(){
 	print_msg "Cleaning temp files..." "INFO"
-	rm -rf $diag_folder
+	rm -rf $diag_folder	
 }
 
 
 
 
 create_archive(){
-
+	
 	if [ -d $diag_folder ]
 		then
 			print_msg "Compressing diag file..." "INFO"
@@ -75,7 +74,7 @@ die() {
 
 show_help(){
 	echo "ECE Diagnostics"
-	echo "Usage: ./ece-diagnostics.sh [OPTIONS]"
+	echo "Usage: ./diagnostics.sh [OPTIONS]"
 	echo ""
 	echo "Options:"
 	echo "-e|--ecehost #Specifies ip/hostname of the ECE (default:localhost)"
@@ -91,11 +90,11 @@ show_help(){
 	echo "-p|--password <password>"
 	echo ""
 	echo "Sample usage:"
-	echo "\"./ece-diagnostics.sh -d -s\" #collects system and docker level info"
-	echo "\"./ece-diagnostics.sh -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects allocators information"
-	echo "\"./ece-diagnostics.sh -e 192.168.1.42 -x 12409 -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects allocators information using custom host and port"
-	echo "\"./ece-diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -d -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info and docker info only for the specified cluster ID"
-	echo "\"./ece-diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info for the specified cluster ID"
+	echo "\"./diagnostics.sh -d -s\" #collects system and docker level info"
+	echo "\"./diagnostics.sh -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects allocators information"
+	echo "\"./diagnostics.sh -e 192.168.1.42 -x 12409 -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects allocators information using custom host and port" 
+	echo "\"./diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -d -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info and docker info only for the specified cluster ID"
+	echo "\"./diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info for the specified cluster ID" 
 	echo ""
 }
 
@@ -143,7 +142,7 @@ get_system(){
 			#memory - sample 5 times every 1 second
 			print_msg "SAR [sampling memory usage]" "INFO"
 			sar -r 1 5 > $elastic_folder/sar_memory_sampled.txt 2>&1
-			#swap - sample once
+			#swap - sample once 
 			print_msg "SAR [collect swap usage]" "INFO"
 			sar -S 1 1 > $elastic_folder/sar_swap_sampled.txt 2>&1
 			#network
@@ -151,9 +150,9 @@ get_system(){
 			sar -n DEV > $elastic_folder/sar_network.txt 2>&1
 		else
 			print_msg "'sar' command not found. Please install package 'sysstat' to collect extended system stats" "WARN"
-	fi
+	fi 
 	print_msg "Grabbing ECE logs" "INFO"
-	cd $storage_path && find . -type f -name *.log -exec cp -p --parents \{\} $elastic_folder \;
+	cd $storage_path && find . -type f -name *.log -exec cp --parents \{\} $elastic_folder \;
 	print_msg "Checking XFS info" "INFO"
 	[[ -x "$(type -P xfs_info)" ]] && xfs_info $storage_path > $elastic_folder/xfs_info.txt 2>&1
 }
@@ -163,15 +162,15 @@ get_docker(){
 		#clusterId is passed as argument - filter on it
 		then
 			containersId=(`docker ps -a --format "{{.ID}}" --filter="name=$1" `)
-        		logNames=(`docker ps -a --format "{{.ID}}__{{.Names}}__{{.Image}}" --filter="name=$1"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g' `)
+        		logNames=(`docker ps -a --format "{{.ID}}__{{.Names}}__{{.Image}}" --filter="name=$1"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g' `) 
 		#consider all containers
 		else
 			containersId=(`docker ps -a --format "{{.ID}}"`)
         		logNames=(`docker ps -a --format "{{.ID}}__{{.Names}}__{{.Image}}"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g' `)
-	fi
-
+	fi			
+	
 	print_msg "Grabbing docker logs..." "INFO"
-	arrayLength=${#containersId[@]}
+	arrayLength=${#containersId[@]}	
 	local i=0
 	for ((; i<$arrayLength; i++))
 	do
@@ -217,10 +216,10 @@ do_http_request(){
 	args=$5
 	output_file=$6
 
-	#build request
+	#build request  
         request="curl -s -X$method -u $user:$password $protocol://$ece_host:$ece_port$path -o $output_file"
 
-	#validation
+	#validation 
 	validate_http_creds
 	if [[ ! -z $missing_creds ]]
 		then
@@ -253,9 +252,9 @@ process_action(){
 				then print_msg "cannot fetch cluster plan activity without specifying credentials" "WARN"
 				else
 					if [ -n $cluster_id ]
-						then
+						then 
 							create_folders plan
-							do_http_request GET http /api/v1/clusters/elasticsearch/$cluster_id/plan/activity $ece_port "" $docker_folder/plan/plan_$cluster_id.json
+							do_http_request GET http /api/v1/clusters/elasticsearch/$cluster_id/plan/activity $ece_port "" $docker_folder/plan/plan_$cluster_id.json	
 						else
 							print_msg "cannot fetch cluster plan activity without specifying a cluster id. Use option -c|--cluster to specify a cluster ID"	"WARN"
 					fi
@@ -264,11 +263,11 @@ process_action(){
 			cluster_info)
 			validate_http_creds
 			if [[ -n $missing_creds ]]
-                                then print_msg "cannot fetch cluster info plan without specifying credentials" "WARN"
+                                then print_msg "cannot fetch cluster info plan without specifying credentials" "WARN"	
 				else
 					if [ -n $cluster_id ]
                                 		then
-                                        		create_folders cluster_info
+                                        		create_folders cluster_info 
                                         		do_http_request GET http "/api/v1/clusters/elasticsearch/$cluster_id" $ece_port "?show_metadata=true&show_plans=true" $docker_folder/cluster_info/cluster_info_$cluster_id.json
                                 		else
                                         		print_msg "cannot fetch cluster info without specifying a cluster id. Use option -c|--cluster to specify a cluster ID" "WARN"
@@ -291,7 +290,7 @@ print_msg(){
 	#$2 sev
 	local sev=
 	if [ -n $2 ]
-		then
+		then 
 			sev="[$2]"
 	fi
 	echo "`date` $sev:  $1"
@@ -308,23 +307,14 @@ get_fs_permissions(){
 # no arguments -> show help
 if [ "$#" -eq 0 ]; then
 	show_help
-# arguments - parse them
-else
+# arguments - parse them 
+else 
 	while :; do
 	    	case $1 in
 	            -s|--system)
 	            #gather system data
 	            actions="$actions system"
 		    ;;
-        -h|--help)
-          show_help
-          exit
-          ;;
-        -v|--version)
-          echo "-v | --version requested"
-          echo $VERSION
-          exit
-          ;;
 		    -sp|--storage-path)
 		    #changes -s behaviour by
 		    #overriding default $storage_path value (/mnd/data/elastic)
@@ -339,7 +329,7 @@ else
 		    if [ -z "$2" ]; then
                         die 'ERROR: "-o|--output-path" requires a valid full filesystem path'
                         else
-                    		output_path=$2
+                    		output_path=$2 
 				diag_folder=$output_path/$diag_name
 				elastic_folder=$diag_folder/elastic
 				docker_folder=$diag_folder/docker
@@ -422,9 +412,9 @@ fi
 
 print_msg "ECE Diagnostics" "INFO"
 sleep 1
-# go through identified actions and execute
+# go through identified actions and execute 
 if [ -z "$actions" ]
-	then
+	then 
 		: #do nothing
 	else
 		actions=($actions)
@@ -432,7 +422,7 @@ if [ -z "$actions" ]
 
 		for ((i=0; i<$actionsLength; i++))
         		do
-        			process_action ${actions[$i]}
+        			process_action ${actions[$i]} 
 		done
 
 fi
