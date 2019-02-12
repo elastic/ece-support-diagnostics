@@ -1,0 +1,15 @@
+cmd/ece-diagnostic-runner/ece-diagnostic-runner
+*.tar.gz
+tmp/
+testing/
+test_data/
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
