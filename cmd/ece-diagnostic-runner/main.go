@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/elastic/beats/libbeat/logp"
@@ -22,7 +21,10 @@ import (
 // 	os.Exit(exitCode)
 // }
 
+// var ElasticFolder string
+
 func init() {
+	// flag.StringVar(&ElasticFolder, "f", "/mnt/data/elastic", "Path to the elastic folder")
 	config := logp.DefaultConfig()
 	config.Level = 8
 	config.Beat = "HELLO WORLD!"
@@ -31,8 +33,7 @@ func init() {
 }
 
 func main() {
-	fmt.Println("hello again!")
-	if err := sd.Run(); err != nil {
+	if err := sd.Start(); err != nil {
 		os.Exit(1)
 	}
 }
