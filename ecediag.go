@@ -61,8 +61,8 @@ func Start() error {
 	l := logp.NewLogger("Main")
 	l.Infof("Using %s as temporary storage location", Basepath)
 
-	runSystemCmds(tar)
 	runDockerCmds(tar)
+	runSystemCmds(tar)
 
 	tar.t.Close()
 	tar.g.Close()
