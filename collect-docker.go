@@ -3,6 +3,8 @@ package ecediag
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"time"
@@ -13,8 +15,8 @@ import (
 )
 
 func runDockerCmds(tar *Tarball) {
-	dlog := logp.NewLogger("docker")
-	dlog.Info("Collecting Docker information")
+	log := logp.NewLogger("docker")
+	log.Info("Collecting Docker information")
 
 	const defaultDockerAPIVersion = "v1.23"
 
@@ -23,7 +25,7 @@ func runDockerCmds(tar *Tarball) {
 		panic(err)
 	}
 	// cli.NegotiateAPIVersion(context.Background())
-	dlog.Infof("Docker API Version: %s", cli.ClientVersion())
+	log.Infof("Docker API Version: %s", cli.ClientVersion())
 	// fmt.Println(cli.ClientVersion())
 
 	ctx := context.Background()
@@ -41,31 +43,31 @@ func runDockerCmds(tar *Tarball) {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
-		// logOptions := types.ContainerLogsOptions{
-		// 	Since:      "72h",
-		// 	ShowStdout: true,
-		// 	ShowStderr: true,
-		// }
-		//
-		// dlog.Info("Writing logs for container: ", container.ID[:10])
-		// reader, err := cli.ContainerLogs(ctx, container.ID, logOptions)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
+		logOptions := types.ContainerLogsOptions{
+			Since:      "72h",
+			ShowStdout: true,
+			ShowStderr: true,
+		}
+
+		log.Info("Writing logs for container: ", container.ID[:10])
+		reader, err := cli.ContainerLogs(ctx, container.ID, logOptions)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		// Need to evaluate how to stream bytes to tar file, rather than copy all bytes?
 		fileName := safeFilename(container.ID[:10], container.Names[0], container.Image)
 		filePath := fp("logs", fileName)
 		// outFile, err := os.Create(filePath + ".log")
-		// // handle err
+		// handle err
 		// defer outFile.Close()
 		// _, err = io.Copy(outFile, reader)
 
-		// tar.AddData(filePath, reader)
-
-		// if err != nil && err != io.EOF {
-		// 	log.Fatal(err)
-		// }
+		logData, err := ioutil.ReadAll(reader)
+		tar.AddData(filePath, logData)
+		if err != nil && err != io.EOF {
+			log.Fatal(err)
+		}
 
 		// TEST
 		// fmt.Println(container.Names[0])
