@@ -11,7 +11,8 @@ import (
 func CollectLogs(tar *Tarball) {
 	log := logp.NewLogger("collect-logs")
 	log.Info("Collecting ECE log files")
-	elasticLogsPattern := regexp.MustCompile(`\/logs\/|\/zookeeper\/data`)
+	// TODO: break into concatenated pattern, so the code can be commented.
+	elasticLogsPattern := regexp.MustCompile(`\/logs\/|\/zookeeper\/data|ensemble-state-file.json$|stunnel.conf$|replicated.cfg.dynamic$`)
 	findPattern(ElasticFolder, elasticLogsPattern, tar)
 }
 
