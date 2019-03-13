@@ -55,8 +55,8 @@ func Start() error {
 	tar := new(Tarball)
 	tar.Create(TarFile)
 
-	defer tar.g.Close()
 	defer tar.t.Close()
+	defer tar.g.Close()
 
 	l := logp.NewLogger("Main")
 	l.Infof("Using %s as temporary storage location", Basepath)
@@ -64,19 +64,22 @@ func Start() error {
 	runSystemCmds(tar)
 	runDockerCmds(tar)
 
-	runUpload(tar)
+	tar.t.Close()
+	tar.g.Close()
+
+	runUpload(tar.filepath)
 
 	return nil
 }
 
-func runUpload(tar *Tarball) {
+func runUpload(filePath string) {
 	if UploadUID != "" {
 		apiURL := "https://upload-staging.elstc.co"
 		numWorkers := runtime.NumCPU()
 
 		// https://upload-staging.elstc.co/u/f7643a17-8b63-4f17-8a34-85e747c959ea
 		// uid := "f7643a17-8b63-4f17-8a34-85e747c959ea"
-		cmd := &commands.UploadCmd{UploadID: UploadUID, Filepath: tar.filepath, ApiURL: apiURL, NumWorkers: numWorkers}
+		cmd := &commands.UploadCmd{UploadID: UploadUID, Filepath: filePath, ApiURL: apiURL, NumWorkers: numWorkers}
 		cmd.Execute()
 	}
 }
