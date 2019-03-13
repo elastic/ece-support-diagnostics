@@ -19,6 +19,10 @@ func eceProxy(uri string) string {
 //  Any request in `Sub` will be provided the Collect struct for text substituion
 var rest = []Rest{
 	Rest{
+		Request:  "/api/v1/platform",
+		Filename: "platform.json",
+	},
+	Rest{
 		Request:  "/api/v1/platform/infrastructure/allocators",
 		Filename: "allocators.json",
 	},
@@ -35,6 +39,10 @@ var rest = []Rest{
 		Request:   "/api/v1/clusters/elasticsearch",
 		WithItems: "elasticsearch_clusters",
 		Sub: []Rest{
+			Rest{
+				Filename: "{{ .cluster_id }}/ece/cluster_info.json",
+				Request:  "/api/v1/clusters/elasticsearch/{{ .cluster_id }}",
+			},
 			Rest{
 				Filename: "{{ .cluster_id }}/ece/plan.json",
 				Request:  "/api/v1/clusters/elasticsearch/{{ .cluster_id }}/plan/activity",
