@@ -74,7 +74,14 @@ func runDockerCmds(tar *Tarball) {
 		// fmt.Printf("%v\n", container.Ports)
 		if container.Names[0] == "/frc-cloud-uis-cloud-ui" {
 			// fmt.Printf("%+v\n", container)
-			RunRest(container, tar)
+			if DisableRest != true {
+				RunRest(container, tar)
+			}
+		}
+
+		// https://github.com/elastic/ece-support-diagnostics/issues/5
+		if container.Names[0] == "/frc-zookeeper-servers-zookeeper" {
+			zookeeperMNTR(container, tar)
 		}
 
 		cTop, err := cli.ContainerTop(ctx, container.ID, []string{})

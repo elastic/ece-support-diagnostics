@@ -42,6 +42,24 @@ var tr = &http.Transport{
 // HTTP Timeout = 10s
 var myClient = &http.Client{Timeout: 10 * time.Second, Transport: tr}
 
+// https://itnext.io/how-to-stub-requests-to-remote-hosts-with-go-6c2c1db32bf2
+// type Client struct {
+// 	key, secret string
+// 	httpClient  *http.Client
+// }
+//
+// func NewClient(key, secret string, options ...Option) *Client {
+// 	cli := Client{
+// 		key:    key,
+// 		secret: secret,
+// 		httpClient: &http.Client{
+// 			Timeout: 5 * time.Second,
+// 		},
+// 	}
+//
+// 	return &cli
+// }
+
 var cloudHost string
 
 func RunRest(d types.Container, tar *Tarball) {
