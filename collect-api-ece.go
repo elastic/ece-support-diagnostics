@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -28,10 +29,17 @@ var passwd string
 // globally disable if used in main()
 // http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
+// Connection timeout = 5s
+// TLS Handshake Timeout = 5s
 var tr = &http.Transport{
 	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	Dial: (&net.Dialer{
+		Timeout: 5 * time.Second,
+	}).Dial,
+	TLSHandshakeTimeout: 5 * time.Second,
 }
 
+// HTTP Timeout = 10s
 var myClient = &http.Client{Timeout: 10 * time.Second, Transport: tr}
 
 var cloudHost string

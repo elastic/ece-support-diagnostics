@@ -89,3 +89,30 @@ func (tw *Tarball) AddFile(filePath string, info os.FileInfo, basePath string) e
 	_, err = io.Copy(tw.t, file)
 	return err
 }
+
+// https://medium.com/learning-the-go-programming-language/streaming-io-in-go-d93507931185
+// type chanWriter struct {
+// 	ch chan byte
+// }
+//
+// func newChanWriter() *chanWriter {
+// 	return &chanWriter{make(chan byte, 1024)}
+// }
+//
+// func (w *chanWriter) Chan() <-chan byte {
+// 	return w.ch
+// }
+//
+// func (w *chanWriter) Write(p []byte) (int, error) {
+// 	n := 0
+// 	for _, b := range p {
+// 		w.ch <- b
+// 		n++
+// 	}
+// 	return n, nil
+// }
+//
+// func (w *chanWriter) Close() error {
+// 	close(w.ch)
+// 	return nil
+// }
