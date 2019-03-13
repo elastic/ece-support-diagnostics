@@ -24,6 +24,7 @@ var (
 	ElasticFolder string
 	DiagName      string
 	TarFile       string
+	DisableRest   bool
 	UploadUID     string
 )
 
@@ -31,6 +32,7 @@ func init() {
 	flag.StringVar(&ElasticFolder, "f", "/mnt/data/elastic", "Path to the elastic folder")
 	flag.StringVar(&Basepath, "t", "/tmp", "Path to the elastic folder")
 	flag.StringVar(&UploadUID, "u", "", "Elastic Upload ID")
+	flag.BoolVar(&DisableRest, "disableRest", false, "Disable Rest calls")
 	flag.Parse()
 	RunnerName, err := checkStoragePath()
 	if err != nil {
@@ -52,14 +54,14 @@ func init() {
 func Start() error {
 	fmt.Println(ElasticFolder)
 
+	l := logp.NewLogger("Main")
+	l.Infof("Using %s as temporary storage location", Basepath)
+
 	tar := new(Tarball)
 	tar.Create(TarFile)
 
 	defer tar.t.Close()
 	defer tar.g.Close()
-
-	l := logp.NewLogger("Main")
-	l.Infof("Using %s as temporary storage location", Basepath)
 
 	runDockerCmds(tar)
 	runSystemCmds(tar)
@@ -67,6 +69,7 @@ func Start() error {
 	tar.t.Close()
 	tar.g.Close()
 
+	l.Infof("Output: %s", TarFile)
 	runUpload(tar.filepath)
 
 	return nil
