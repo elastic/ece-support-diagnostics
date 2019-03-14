@@ -79,9 +79,6 @@ func runUpload(filePath string) {
 	if UploadUID != "" {
 		apiURL := "https://upload-staging.elstc.co"
 		numWorkers := runtime.NumCPU()
-
-		// https://upload-staging.elstc.co/u/f7643a17-8b63-4f17-8a34-85e747c959ea
-		// uid := "f7643a17-8b63-4f17-8a34-85e747c959ea"
 		cmd := &commands.UploadCmd{UploadID: UploadUID, Filepath: filePath, ApiURL: apiURL, NumWorkers: numWorkers}
 		cmd.Execute()
 	}

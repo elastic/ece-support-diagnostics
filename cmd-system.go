@@ -24,7 +24,7 @@ var SystemCmd = []systemCmd{
 	},
 	systemCmd{
 		Filename: "fs_permissions_storage_path.txt",
-		RawCmd:   "ls -la $storage_path",
+		RawCmd:   "ls -la " + ElasticFolder,
 	},
 	systemCmd{
 		Filename: "fs_permissions_mnt_data.txt",
