@@ -32,7 +32,7 @@ func zookeeperMNTR(c types.Container, tar *Tarball) {
 		return
 	}
 
-	cmd := exec.Command("nc", ip, "2193")
+	cmd := exec.Command("nc", ip, port)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		log.Fatal(err)
