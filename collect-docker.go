@@ -3,6 +3,7 @@ package ecediag
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"path/filepath"
@@ -16,7 +17,9 @@ import (
 
 func runDockerCmds(tar *Tarball) {
 	log := logp.NewLogger("docker")
-	log.Info("Collecting Docker information")
+	dockerMsg := "Collecting Docker information"
+	log.Info(dockerMsg)
+	fmt.Println("[ ] " + dockerMsg)
 
 	const defaultDockerAPIVersion = "v1.23"
 
@@ -38,6 +41,10 @@ func runDockerCmds(tar *Tarball) {
 	writeJSON("DiskUsage.json", cmd(cli.DiskUsage(ctx)), tar)
 	writeJSON("ServerVersion.json", cmd(cli.ServerVersion(ctx)), tar)
 
+	clearStdoutLine()
+	fmt.Println("[✔] Collected Docker information")
+
+	fmt.Println("[ ] Collecting Docker logs")
 	for _, container := range Containers {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -94,6 +101,9 @@ func runDockerCmds(tar *Tarball) {
 		}
 
 	}
+
+	clearStdoutLine()
+	fmt.Println("[✔] Collected Docker logs")
 }
 
 func safeFilename(names ...string) string {

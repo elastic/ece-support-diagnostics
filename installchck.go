@@ -8,11 +8,12 @@ import (
 	"strings"
 )
 
+// ContainerSets is used for storing roles/containers detected from the runners->runner filesystem folders
 var ContainerSets = []string{}
 
 func checkStoragePath() (string, error) {
 	sp := filepath.Join(ElasticFolder, "*/services/runners/containers/docker/")
-	fmt.Println(sp)
+	fmt.Printf("Checking for ECE install: %s\n", sp)
 	installPaths, err := filepath.Glob(sp)
 	if err != nil {
 		log.Fatal(err)
@@ -38,7 +39,7 @@ func checkStoragePath() (string, error) {
 				ContainerSets = append(ContainerSets, ContainerSet.Name())
 			}
 		}
-		fmt.Printf("%v\n", ContainerSets)
+		fmt.Printf("Discovered container sets: %v\n", ContainerSets)
 		return runnerName, nil
 	}
 	return "", fmt.Errorf("The ECE install location specified is not correct")

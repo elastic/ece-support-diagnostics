@@ -2,6 +2,7 @@ package ecediag
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os/exec"
@@ -11,6 +12,10 @@ import (
 	"github.com/elastic/beats/libbeat/logp"
 )
 
+// zookeeperMNTR sends `echo mntr|nc ip port` for zookeeper
+//  could not use localhost or 0.0.0.0, the response gets dropped
+//  discovers the zookeep docker port between 2100-2199
+//  then sends the command to the first ipv4 address found on the host
 func zookeeperMNTR(c types.Container, tar *Tarball) {
 	log := logp.NewLogger("zookeeper")
 	log.Info("Collecting zookeeper mntr")
@@ -32,7 +37,8 @@ func zookeeperMNTR(c types.Container, tar *Tarball) {
 		return
 	}
 
-	cmd := exec.Command("nc", ip, string(port))
+	portString := fmt.Sprintf("%d", port)
+	cmd := exec.Command("nc", ip, portString)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		log.Fatal(err)
@@ -45,7 +51,7 @@ func zookeeperMNTR(c types.Container, tar *Tarball) {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("It didn't work:\n%s\n%s", err, out)
 	}
 
 	fpath := filepath.Join(DiagName, "zookeeper_mntr.txt")
@@ -53,6 +59,8 @@ func zookeeperMNTR(c types.Container, tar *Tarball) {
 	// fmt.Println(test, err)
 }
 
+// find an ipv4 address to use
+// TODO: look into adding additional error handling, and not sure if ipv6 could be used
 func externalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {

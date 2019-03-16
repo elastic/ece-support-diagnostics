@@ -62,6 +62,7 @@ var myClient = &http.Client{Timeout: 10 * time.Second, Transport: tr}
 
 var cloudHost string
 
+// RunRest starts the chain of functions to collect the Rest/HTTP calls
 func RunRest(d types.Container, tar *Tarball) {
 	var err error
 	cloudHost, err = resolveCloudUI(d)
@@ -77,6 +78,7 @@ func RunRest(d types.Container, tar *Tarball) {
 
 }
 
+// resolveCloudUI tries to determine the endpoint to talk to for the frc-cloud-uis-cloud-ui container
 func resolveCloudUI(c types.Container) (endpoint string, err error) {
 	log := logp.NewLogger("API")
 	log.Info("Running Resolver for Cloud UI")
@@ -94,6 +96,7 @@ func resolveCloudUI(c types.Container) (endpoint string, err error) {
 			// url = fmt.Sprintf("https://%s:%d/", endpoint.IP, endpoint.PublicPort)
 			url = fmt.Sprintf("%s://%s:%d/", protocol, endpoint.IP, endpoint.PublicPort)
 
+			// TODO: change to use: "api/v1/platform"
 			req, err := http.NewRequest("GET", url+"api/v0", nil)
 			if err != nil {
 				failures = append(failures, err)
@@ -112,21 +115,22 @@ func resolveCloudUI(c types.Container) (endpoint string, err error) {
 					return url, err
 				}
 				return url, nil
-			} else {
-				// non 200 OK
-				err = fmt.Errorf("Response Code: %d, Body: %s", resp.StatusCode, resp.Body)
-				failures = append(failures, err)
 			}
+			// non 200 OK
+			err = fmt.Errorf("Response Code: %d, Body: %s", resp.StatusCode, resp.Body)
+			failures = append(failures, err)
 		} // End of protocols loop
 	} // End of c.Ports loop
 	err = fmt.Errorf("Could not find a working URL to talk to frc-cloud-uis-cloud-ui")
 	return url, err
 }
 
+// ValidateAuth prompts and validates credentials to talk to frc-cloud-uis-cloud-ui container
 func ValidateAuth(req *http.Request) error {
 	log := logp.NewLogger("ValidateAuth")
 
-	username, passwd = GetCredentials()
+	username, passwd = getCredentials()
+	fmt.Println()
 
 	req.SetBasicAuth(username, passwd)
 	resp, err := myClient.Do(req)
@@ -138,12 +142,13 @@ func ValidateAuth(req *http.Request) error {
 		json.NewDecoder(resp.Body).Decode(v0Response)
 		// alog.Infof("%+v\n", v0Response)
 		if v0Response.Ok {
-			for i := 0; i < 3; i++ {
-				fmt.Printf("\033[F") // back to previous line
-				fmt.Printf("\033[K") // clear line
+			for i := 0; i <= 2; i++ {
+				clearStdoutLine()
+				// fmt.Printf("\033[F") // back to previous line
+				// fmt.Printf("\033[K") // clear line
 			}
 
-			// fmt.Printf("\rWHAT DOES IT DO??\n")
+			fmt.Printf("Successful Authentication\n")
 			fmt.Printf("✔ Username (%s)\n", username)
 			fmt.Printf("✔ Password\n")
 
@@ -154,6 +159,7 @@ func ValidateAuth(req *http.Request) error {
 	return fmt.Errorf("Authentication failed")
 }
 
+// fetch dispatches the Rest/HTTP request
 func fetch(it Rest, tar *Tarball, wg *sync.WaitGroup) {
 	url := cloudHost + strings.TrimLeft(it.Request, "/")
 
@@ -173,12 +179,14 @@ func fetch(it Rest, tar *Tarball, wg *sync.WaitGroup) {
 	archiveFile := filepath.Join(DiagName, it.Filename)
 	tar.AddData(archiveFile, bodyText)
 
-	CheckSubItems(it, bodyText, tar)
+	checkSubItems(it, bodyText, tar)
 
 	wg.Done()
 }
 
-func CheckSubItems(parent Rest, r []byte, tar *Tarball) {
+// checkSubItems is used when `Sub` is defined in the Rest object, and contains a `Loop` item.
+//  It tries to unpack the parent JSON response into a map, and assert the proper type (array/object)
+func checkSubItems(parent Rest, r []byte, tar *Tarball) {
 	if len(parent.Sub) > 0 {
 
 		var resp interface{}
@@ -189,18 +197,18 @@ func CheckSubItems(parent Rest, r []byte, tar *Tarball) {
 		case []interface{}:
 			// Json response for the parent Rest response is a JSON Array
 			fmt.Println(json, "Array!")
-			IterateSub(parent, resp, tar)
+			iterateSub(parent, resp, tar)
 
 		case map[string]interface{}:
 			// Json response for parent Rest response is a JSON Object
-			if parent.WithItems == "" {
+			if parent.Loop == "" {
 				// Iterate with top level map
-				IterateSub(parent, resp, tar)
+				iterateSub(parent, resp, tar)
 			} else {
-				// WithItems should specify a key that contains an Array
-				d := json[parent.WithItems]
+				// Loop should specify a key that contains an Array
+				d := json[parent.Loop]
 				for _, Item := range d.([]interface{}) {
-					IterateSub(parent, Item, tar)
+					iterateSub(parent, Item, tar)
 				}
 			}
 
@@ -210,7 +218,7 @@ func CheckSubItems(parent Rest, r []byte, tar *Tarball) {
 	}
 }
 
-func IterateSub(R Rest, It interface{}, tar *Tarball) {
+func iterateSub(R Rest, It interface{}, tar *Tarball) {
 	var wg sync.WaitGroup
 	elog := logp.NewLogger("Elasticsearch")
 
@@ -221,19 +229,21 @@ func IterateSub(R Rest, It interface{}, tar *Tarball) {
 		wg.Add(1)
 
 		// render template
-		item.Templater(It)
+		item.templater(It)
 
 		go fetch(item, tar, &wg)
 	}
 	wg.Wait()
 }
 
-func (R *Rest) Templater(Obj interface{}) {
-	R.Filename = RunTemplate(R.Filename, Obj)
-	R.Request = RunTemplate(R.Request, Obj)
+// templater when called runs templating for the defined fields
+func (R *Rest) templater(Obj interface{}) {
+	R.Filename = runTemplate(R.Filename, Obj)
+	R.Request = runTemplate(R.Request, Obj)
 }
 
-func RunTemplate(item string, Obj interface{}) string {
+// runTemplate performs the string substitution using the html/template package
+func runTemplate(item string, Obj interface{}) string {
 
 	t := template.Must(template.New("testing").Parse(item))
 
@@ -246,6 +256,7 @@ func RunTemplate(item string, Obj interface{}) string {
 	return tpl.String()
 }
 
+// readJSON unpacks the Rest/HTTP request into a generic interface
 func readJSON(in []byte) interface{} {
 	var data interface{}
 	err := json.Unmarshal(in, &data)
@@ -253,7 +264,9 @@ func readJSON(in []byte) interface{} {
 	return data
 }
 
-func GetCredentials() (string, string) {
+// getCredentials is used for securely prompting for a password from stdin
+//  it uses the x/crypto/ssh/terminal package to ensure stdin echo is disabled
+func getCredentials() (string, string) {
 	fmt.Println("Please Enter Your ECE Admin Credentials")
 
 	reader := bufio.NewReader(os.Stdin)

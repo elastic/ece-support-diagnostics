@@ -10,8 +10,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/elastic/beats/libbeat/logp"
 )
 
+// Tarball provides a wrapper for the tar/gz writers, and a mutex lock to call for thread safety
 type Tarball struct {
 	filepath string
 	t        *tar.Writer
@@ -19,6 +22,7 @@ type Tarball struct {
 	m        sync.Mutex
 }
 
+// Create starts a new tar/gz file to write data into
 func (tw *Tarball) Create(filePath string) error {
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -38,6 +42,48 @@ func (tw *Tarball) Create(filePath string) error {
 	return err
 }
 
+// Finalize adds the logfile to the tar, and closes the tar.
+func (tw *Tarball) Finalize(logfilePath string) {
+
+	// TODO: This needs to be improved. I would like to just call AddFile.
+	//  need to make Addfile take a struct that has the stat,name,tar filepath,etc
+	l := logp.NewLogger("TarFile")
+	l.Infof("Adding log file: %s", logfilePath)
+
+	msgClosingTar := fmt.Sprintf(" the tar: %s", tw.filepath)
+	l.Infof("Finalizing %s", msgClosingTar)
+	fmt.Println("[ ] Finalizing" + msgClosingTar)
+
+	fileInfo, err := os.Stat(logfilePath)
+	panicError(err)
+
+	logTarPath := filepath.Join(DiagName, "diagnostic.log")
+
+	tw.m.Lock()
+	defer tw.m.Unlock()
+
+	header, err := tar.FileInfoHeader(fileInfo, fileInfo.Name())
+	panicError(err)
+	header.Name = logTarPath
+
+	err = tw.t.WriteHeader(header)
+	panicError(err)
+
+	file, err := os.Open(logfilePath)
+	panicError(err)
+	defer file.Close()
+
+	_, err = io.Copy(tw.t, file)
+	panicError(err)
+
+	tw.t.Close()
+	tw.g.Close()
+
+	clearStdoutLine()
+	fmt.Println("[✔] Finished" + msgClosingTar)
+}
+
+// AddData is for adding byte data directly to the tar file
 // Need to figure out how to consume the bytes as streaming io.Writer
 func (tw *Tarball) AddData(filePath string, b []byte) error {
 	tw.m.Lock()
@@ -60,6 +106,8 @@ func (tw *Tarball) AddData(filePath string, b []byte) error {
 	return err
 }
 
+// AddFile reads a file and adds it to the tar file. The basePath is removed from the filepath for
+//  the path preserved in the tar file.
 func (tw *Tarball) AddFile(filePath string, info os.FileInfo, basePath string) error {
 	tw.m.Lock()
 	defer tw.m.Unlock()

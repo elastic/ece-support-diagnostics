@@ -2,21 +2,24 @@ package ecediag
 
 import "strings"
 
+// Rest defines HTTP requests to be collected
 type Rest struct {
-	Method    string
-	Request   string
-	Filename  string
-	WithItems string
-	Sub       []Rest
+	Method   string
+	Request  string
+	Filename string
+	Loop     string
+	Sub      []Rest
 }
 
+// this is a helper function to avoid long repetitive paths for a large number of Rest calls
 func eceProxy(uri string) string {
 	eceBase := "/api/v1/clusters/elasticsearch/{{ .cluster_id }}/proxy/"
 	return eceBase + strings.TrimLeft(uri, "/")
 }
 
-// If `Collector` is present, the JSON response will be unmarshalled to it.
-//  Any request in `Sub` will be provided the Collect struct for text substituion
+// If `Sub` is present, the JSON response will be unpacked to a map and provided
+//  to the sub items for templating. `Loop` will specify the path to an array
+//  to iterate on. `Loop` will be looped for the `Sub` items.
 var rest = []Rest{
 	Rest{
 		Request:  "/api/v1/platform",
@@ -35,9 +38,9 @@ var rest = []Rest{
 		Filename: "proxies.json",
 	},
 	Rest{
-		Filename:  "es_clusters.json",
-		Request:   "/api/v1/clusters/elasticsearch",
-		WithItems: "elasticsearch_clusters",
+		Filename: "es_clusters.json",
+		Request:  "/api/v1/clusters/elasticsearch",
+		Loop:     "elasticsearch_clusters",
 		Sub: []Rest{
 			Rest{
 				Filename: "{{ .cluster_id }}/ece/cluster_info.json",
@@ -54,6 +57,10 @@ var rest = []Rest{
 			Rest{
 				Filename: "{{ .cluster_id }}/es/cat_aliases.txt",
 				Request:  eceProxy("_cat/aliases?v"),
+			},
+			Rest{
+				Filename: "{{ .cluster_id }}/es/cat_tasks.txt",
+				Request:  eceProxy("_cat/tasks"),
 			},
 			Rest{
 				Filename: "{{ .cluster_id }}/es/cat_allocation.txt",
@@ -73,7 +80,7 @@ var rest = []Rest{
 			},
 			Rest{
 				Filename: "{{ .cluster_id }}/es/cat_indices.txt",
-				Request:  eceProxy("_cat/indices?v"),
+				Request:  eceProxy("_cat/indices?v&s=name"),
 			},
 			Rest{
 				Filename: "{{ .cluster_id }}/es/cat_master.txt",

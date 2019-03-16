@@ -1,10 +1,13 @@
 package ecediag
 
+import "fmt"
+
 type systemCmd struct {
 	Filename string
 	RawCmd   string
 }
 
+// SystemCmd holds the set of system commands that need to be collected
 var SystemCmd = []systemCmd{
 	systemCmd{
 		Filename: "uname.txt",
@@ -24,7 +27,7 @@ var SystemCmd = []systemCmd{
 	},
 	systemCmd{
 		Filename: "fs_permissions_storage_path.txt",
-		RawCmd:   "ls -la " + ElasticFolder,
+		RawCmd:   fmt.Sprintf("ls -la %s", ElasticFolder),
 	},
 	systemCmd{
 		Filename: "fs_permissions_mnt_data.txt",

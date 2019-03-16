@@ -15,17 +15,24 @@ import (
 const ()
 
 var (
-	startTime = time.Now()
+	startTime   = time.Now()
+	hostname, _ = os.Hostname()
 	// _, b, _, _  = runtime.Caller(0)
-	// Basepath    = filepath.Dir(b)
-	// Basepath    = "/tmp"
-	Basepath      string
-	hostname, _   = os.Hostname()
+
+	// Basepath provides the tmp location to create the tar file in
+	Basepath string
+
+	// ElasticFolder provides the path to where ECE is installed
 	ElasticFolder string
-	DiagName      string
-	TarFile       string
-	DisableRest   bool
-	UploadUID     string
+
+	// DiagName is used for the output tar file name
+	DiagName string
+
+	// DisableRest is used for disabling collecting Rest/HTTP requests
+	DisableRest bool
+
+	// UploadUID provides the unique ID that needs to be specified for using the Elastic upload service
+	UploadUID string
 )
 
 func init() {
@@ -42,7 +49,27 @@ func init() {
 		startTime.Year(), startTime.Month(), startTime.Day(),
 		startTime.Hour(), startTime.Minute(), startTime.Second())
 	DiagName = "ecediag-" + RunnerName + DiagDate
-	TarFile = filepath.Join(Basepath, DiagName) + ".tar.gz"
+
+	config := logp.Config{
+		Beat:       "ece-support-diag",
+		JSON:       false,
+		Level:      logp.DebugLevel,
+		ToStderr:   false,
+		ToSyslog:   false,
+		ToFiles:    true,
+		ToEventLog: false,
+		Files: logp.FileConfig{
+			Path:        Basepath,
+			Name:        DiagName + ".log",
+			MaxSize:     20000000,
+			MaxBackups:  0,
+			Permissions: 0644,
+			// Interval:       4 * time.Hour,
+			RedirectStderr: true,
+		},
+	}
+	logp.Configure(config)
+
 	// tmpfolders := []string{
 	// 	filepath.Join(Basepath, "tmp", DiagName, "elastic"),
 	// 	filepath.Join(Basepath, "tmp", DiagName, "docker/logs"),
@@ -50,7 +77,7 @@ func init() {
 	// setupFolders(tmpfolders)
 }
 
-// Start is an exported function
+// Start is the entry point for the ecediag package
 func Start() error {
 	fmt.Println(ElasticFolder)
 
@@ -58,6 +85,8 @@ func Start() error {
 	l.Infof("Using %s as temporary storage location", Basepath)
 
 	tar := new(Tarball)
+
+	TarFile := filepath.Join(Basepath, DiagName) + ".tar.gz"
 	tar.Create(TarFile)
 
 	defer tar.t.Close()
@@ -66,15 +95,16 @@ func Start() error {
 	runDockerCmds(tar)
 	runSystemCmds(tar)
 
-	tar.t.Close()
-	tar.g.Close()
+	// tar.t.Close()
+	// tar.g.Close()
 
-	l.Infof("Output: %s", TarFile)
+	tar.Finalize(filepath.Join(Basepath, DiagName+".log"))
 	runUpload(tar.filepath)
 
 	return nil
 }
 
+// runUpload is used for the Elastic upload service when the `-u {{ upload uui }}` is present
 func runUpload(filePath string) {
 	if UploadUID != "" {
 		apiURL := "https://upload-staging.elstc.co"

@@ -8,6 +8,8 @@ import (
 	"github.com/elastic/beats/libbeat/logp"
 )
 
+// CollectLogs will walk the ElasticFolder path looking for the specific patterns.
+//  TODO: needs to be cleaned up and variables should be passed in.
 func CollectLogs(tar *Tarball) {
 	log := logp.NewLogger("collect-logs")
 	log.Info("Collecting ECE log files")

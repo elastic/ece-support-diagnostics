@@ -12,6 +12,7 @@ import (
 func runSystemCmds(tar *Tarball) {
 	l := logp.NewLogger("system_cmd")
 
+	fmt.Println("[ ] Collecting system information")
 	resc, errc := make(chan string), make(chan error)
 	for _, cmd := range SystemCmd {
 		go func(cmd systemCmd) {
@@ -33,6 +34,8 @@ func runSystemCmds(tar *Tarball) {
 			l.Error(err)
 		}
 	}
+	clearStdoutLine()
+	fmt.Println("\r[✔] Collected system information")
 }
 
 func executeCmd(tar *Tarball, c systemCmd) (string, error) {

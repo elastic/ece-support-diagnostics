@@ -1,6 +1,7 @@
 package ecediag
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -34,4 +35,9 @@ func panicError(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func clearStdoutLine() {
+	fmt.Printf("\033[F") // back to previous line
+	fmt.Printf("\033[K") // clear line
 }
