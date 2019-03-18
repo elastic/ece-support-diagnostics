@@ -46,7 +46,7 @@ func executeCmd(tar *Tarball, c systemCmd) (string, error) {
 	}
 
 	// fpath := filepath.Join(SystemTmpDir, c.Filename)
-	fpath := filepath.Join(DiagName, c.Filename)
+	fpath := filepath.Join(cfg.DiagName, c.Filename)
 	tar.AddData(fpath, output)
 	// err = writeFile(fpath, output)
 

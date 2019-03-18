@@ -57,7 +57,7 @@ func (tw *Tarball) Finalize(logfilePath string) {
 	fileInfo, err := os.Stat(logfilePath)
 	panicError(err)
 
-	logTarPath := filepath.Join(DiagName, "diagnostic.log")
+	logTarPath := filepath.Join(cfg.DiagName, "diagnostic.log")
 
 	tw.m.Lock()
 	defer tw.m.Unlock()
@@ -119,7 +119,7 @@ func (tw *Tarball) AddFile(filePath string, info os.FileInfo, basePath string) e
 	}
 
 	archiveFile := strings.TrimLeft(strings.TrimPrefix(filePath, strings.TrimRight(basePath, "/")), "/")
-	archiveFilePath := filepath.Join(DiagName, archiveFile)
+	archiveFilePath := filepath.Join(cfg.DiagName, archiveFile)
 	header.Name = archiveFilePath
 	// fmt.Println(header.Name)
 

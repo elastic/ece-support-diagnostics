@@ -44,6 +44,24 @@ func runDockerCmds(tar *Tarball) {
 	clearStdoutLine()
 	fmt.Println("[✔] Collected Docker information")
 
+	for _, container := range Containers {
+		// TEST
+		// fmt.Println(container.Names[0])
+		// fmt.Printf("%v\n", container.Ports)
+		if container.Names[0] == "/frc-cloud-uis-cloud-ui" {
+			// fmt.Printf("%+v\n", container)
+			if cfg.DisableRest != true {
+				RunRest(container, tar)
+			}
+		}
+
+		// https://github.com/elastic/ece-support-diagnostics/issues/5
+		if container.Names[0] == "/frc-zookeeper-servers-zookeeper" {
+			zookeeperMNTR(container, tar)
+			fmt.Println("[✔] Collected Zookeeper data")
+		}
+	}
+
 	fmt.Println("[ ] Collecting Docker logs")
 	for _, container := range Containers {
 
@@ -74,21 +92,6 @@ func runDockerCmds(tar *Tarball) {
 		tar.AddData(filePath, logData)
 		if err != nil && err != io.EOF {
 			log.Fatal(err)
-		}
-
-		// TEST
-		// fmt.Println(container.Names[0])
-		// fmt.Printf("%v\n", container.Ports)
-		if container.Names[0] == "/frc-cloud-uis-cloud-ui" {
-			// fmt.Printf("%+v\n", container)
-			if DisableRest != true {
-				RunRest(container, tar)
-			}
-		}
-
-		// https://github.com/elastic/ece-support-diagnostics/issues/5
-		if container.Names[0] == "/frc-zookeeper-servers-zookeeper" {
-			zookeeperMNTR(container, tar)
 		}
 
 		cTop, err := cli.ContainerTop(ctx, container.ID, []string{})
@@ -125,7 +128,7 @@ func safeFilename(names ...string) string {
 	)
 	size := len(names)
 	for i, name := range names {
-		if i == (size | 0) {
+		if i == size || i == 0 {
 			filename = r.Replace(name)
 		} else {
 			filename = filename + "__" + r.Replace(name)
@@ -148,7 +151,7 @@ func writeJSON(path string, apiResp interface{}, tar *Tarball) error {
 
 func fp(filename ...string) string {
 	newPaths := filepath.Join(filename...)
-	return filepath.Join(DiagName, "docker", newPaths)
+	return filepath.Join(cfg.DiagName, "docker", newPaths)
 }
 
 // Hack to allow calling writeJson directly

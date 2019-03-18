@@ -15,26 +15,7 @@ func CollectLogs(tar *Tarball) {
 	log.Info("Collecting ECE log files")
 	// TODO: break into concatenated pattern, so the code can be commented.
 	elasticLogsPattern := regexp.MustCompile(`\/logs\/|\/zookeeper\/data|ensemble-state-file.json$|stunnel.conf$|replicated.cfg.dynamic$`)
-	findPattern(ElasticFolder, elasticLogsPattern, tar)
-}
-
-func findAll(path string, tar *Tarball) {
-	err := filepath.Walk(path,
-		func(filePath string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			tar.AddFile(filePath, info, Basepath)
-			// addFile(filePath, info, basePath, tarball)
-
-			return nil
-		})
-	if err != nil {
-		// return nil, err
-		panic(err)
-		// log.Println(err)
-	}
-	// return files, err
+	findPattern(cfg.ElasticFolder, elasticLogsPattern, tar)
 }
 
 func findPattern(path string, re *regexp.Regexp, tar *Tarball) {
@@ -45,7 +26,7 @@ func findPattern(path string, re *regexp.Regexp, tar *Tarball) {
 			}
 			matched := re.MatchString(filePath)
 			if matched && !info.IsDir() {
-				tar.AddFile(filePath, info, ElasticFolder)
+				tar.AddFile(filePath, info, cfg.ElasticFolder)
 				// addFile(filePath, info, basePath, tarball)
 			}
 
@@ -58,3 +39,22 @@ func findPattern(path string, re *regexp.Regexp, tar *Tarball) {
 	}
 	// return files, err
 }
+
+// func findAll(path string, tar *Tarball) {
+// 	err := filepath.Walk(path,
+// 		func(filePath string, info os.FileInfo, err error) error {
+// 			if err != nil {
+// 				return err
+// 			}
+// 			tar.AddFile(filePath, info, cfg.Basepath)
+// 			// addFile(filePath, info, basePath, tarball)
+
+// 			return nil
+// 		})
+// 	if err != nil {
+// 		// return nil, err
+// 		panic(err)
+// 		// log.Println(err)
+// 	}
+// 	// return files, err
+// }

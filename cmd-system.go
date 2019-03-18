@@ -27,7 +27,7 @@ var SystemCmd = []systemCmd{
 	},
 	systemCmd{
 		Filename: "fs_permissions_storage_path.txt",
-		RawCmd:   fmt.Sprintf("ls -la %s", ElasticFolder),
+		RawCmd:   fmt.Sprintf("ls -la %s", cfg.ElasticFolder),
 	},
 	systemCmd{
 		Filename: "fs_permissions_mnt_data.txt",

@@ -68,6 +68,7 @@ func RunRest(d types.Container, tar *Tarball) {
 	cloudHost, err = resolveCloudUI(d)
 	panicError(err)
 
+	fmt.Println("[ ] Collecting API information ECE and Elasticsearch")
 	var wg sync.WaitGroup
 	for _, item := range rest {
 		wg.Add(1)
@@ -76,6 +77,8 @@ func RunRest(d types.Container, tar *Tarball) {
 	}
 	wg.Wait()
 
+	clearStdoutLine()
+	fmt.Println("[✔] Collected API information ECE and Elasticsearch")
 }
 
 // resolveCloudUI tries to determine the endpoint to talk to for the frc-cloud-uis-cloud-ui container
@@ -148,9 +151,9 @@ func ValidateAuth(req *http.Request) error {
 				// fmt.Printf("\033[K") // clear line
 			}
 
-			fmt.Printf("Successful Authentication\n")
-			fmt.Printf("✔ Username (%s)\n", username)
-			fmt.Printf("✔ Password\n")
+			fmt.Printf("Authenticated\n")
+			fmt.Printf("\t✔ Username (%s)\n", username)
+			fmt.Printf("\t✔ Password\n")
 
 			log.Infof("Cloud UI Resolved, using %s", req.URL)
 			return nil
@@ -176,7 +179,7 @@ func fetch(it Rest, tar *Tarball, wg *sync.WaitGroup) {
 	// }
 	bodyText, err := ioutil.ReadAll(resp.Body)
 
-	archiveFile := filepath.Join(DiagName, it.Filename)
+	archiveFile := filepath.Join(cfg.DiagName, it.Filename)
 	tar.AddData(archiveFile, bodyText)
 
 	checkSubItems(it, bodyText, tar)

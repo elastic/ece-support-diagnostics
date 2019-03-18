@@ -16,12 +16,12 @@ import (
 //  could not use localhost or 0.0.0.0, the response gets dropped
 //  discovers the zookeep docker port between 2100-2199
 //  then sends the command to the first ipv4 address found on the host
-func zookeeperMNTR(c types.Container, tar *Tarball) {
+func zookeeperMNTR(container types.Container, tar *Tarball) {
 	log := logp.NewLogger("zookeeper")
 	log.Info("Collecting zookeeper mntr")
 
 	var port uint16
-	for _, p := range c.Ports {
+	for _, p := range container.Ports {
 		if p.PublicPort >= 2100 && p.PublicPort <= 2199 {
 			port = p.PublicPort
 		}
@@ -54,7 +54,7 @@ func zookeeperMNTR(c types.Container, tar *Tarball) {
 		log.Fatalf("It didn't work:\n%s\n%s", err, out)
 	}
 
-	fpath := filepath.Join(DiagName, "zookeeper_mntr.txt")
+	fpath := filepath.Join(cfg.DiagName, "zookeeper_mntr.txt")
 	tar.AddData(fpath, out)
 	// fmt.Println(test, err)
 }

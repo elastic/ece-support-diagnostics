@@ -11,8 +11,9 @@ import (
 // ContainerSets is used for storing roles/containers detected from the runners->runner filesystem folders
 var ContainerSets = []string{}
 
-func checkStoragePath() (string, error) {
-	sp := filepath.Join(ElasticFolder, "*/services/runners/containers/docker/")
+// CheckStoragePath checks the filesystem for a known folder structure for an ECE install
+func CheckStoragePath(eceInstallPath string) (string, error) {
+	sp := filepath.Join(eceInstallPath, "*/services/runners/containers/docker/")
 	fmt.Printf("Checking for ECE install: %s\n", sp)
 	installPaths, err := filepath.Glob(sp)
 	if err != nil {
@@ -42,7 +43,7 @@ func checkStoragePath() (string, error) {
 		fmt.Printf("Discovered container sets: %v\n", ContainerSets)
 		return runnerName, nil
 	}
-	return "", fmt.Errorf("The ECE install location specified is not correct")
+	return "", fmt.Errorf("Could not find a valid ECE install location")
 }
 
 // /mnt/data/elastic/172.16.0.10/services/
