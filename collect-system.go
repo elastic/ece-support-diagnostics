@@ -2,59 +2,107 @@ package ecediag
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/elastic/beats/libbeat/logp"
 )
 
 func runSystemCmds(tar *Tarball) {
-	l := logp.NewLogger("system_cmd")
+	// l := logp.NewLogger("system_cmd")
 
 	fmt.Println("[ ] Collecting system information")
-	resc, errc := make(chan string), make(chan error)
-	for _, cmd := range SystemCmd {
-		go func(cmd systemCmd) {
-			body, err := executeCmd(tar, cmd)
-			// body, err := runCommand(cmd)
-			if err != nil {
-				errc <- err
-				return
-			}
-			resc <- string(body)
-		}(cmd)
-	}
 
-	for i := 0; i < len(SystemCmd); i++ {
-		select {
-		case res := <-resc:
-			l.Info(res)
-		case err := <-errc:
-			l.Error(err)
-		}
+	var wg sync.WaitGroup
+	for _, cmd := range SystemCmd {
+		wg.Add(1)
+		go cmd.processTask(tar, &wg)
 	}
+	for _, sf := range SystemFiles {
+		wg.Add(1)
+		go sf.processTask(tar, &wg)
+	}
+	wg.Wait()
+
+	// resc, errc := make(chan string), make(chan error)
+	// for _, cmd := range SystemCmd {
+	// 	go func(cmd interface{}) {
+	// 		body, err := processTask(cmd, tar)
+	// 		// body, err := runCommand(cmd)
+	// 		if err != nil {
+	// 			errc <- err
+	// 			return
+	// 		}
+	// 		resc <- string(body)
+	// 	}(cmd)
+	// }
+
+	// for i := 0; i < len(SystemCmd); i++ {
+	// 	select {
+	// 	case res := <-resc:
+	// 		l.Info(res)
+	// 	case err := <-errc:
+	// 		l.Error(err)
+	// 	}
+	// }
 	clearStdoutLine()
 	fmt.Println("\r[✔] Collected system information")
 }
 
-func executeCmd(tar *Tarball, c systemCmd) (string, error) {
+func (c systemFile) processTask(tar *Tarball, wg *sync.WaitGroup) {
+	l := logp.NewLogger("system_file")
+	files, err := c.checkFile()
+	if err != nil {
+		l.Error(err)
+	} else {
+		fp := func(path string) string { return filepath.Join(cfg.DiagName, "server_info", path) }
+
+		var buf []byte
+		numFiles := len(files)
+
+		if numFiles == 1 {
+			stat, _ := os.Stat(files[0])
+			tar.AddFile(files[0], stat, fp(c.Filename))
+			l.Infof("Collected %s as %s", files[0], c.Filename)
+		} else {
+			for _, file := range files {
+				fileData, _ := ioutil.ReadFile(file)
+				header := fmt.Sprintf("==> %s <==\n", file)
+				buf = append(buf, []byte(header)...)
+				buf = append(buf, fileData...)
+				buf = append(buf, []byte("\n")...)
+			}
+			tar.AddData(fp(c.Filename), buf)
+			l.Infof("Combined contents of %v into %s", files, c.Filename)
+		}
+	}
+	wg.Done()
+}
+
+func (c systemCmd) processTask(tar *Tarball, wg *sync.WaitGroup) {
+	l := logp.NewLogger("system_cmd")
+	out, err := c.executeCmd()
+	if err != nil {
+		l.Error(err)
+	} else {
+		fpath := filepath.Join(cfg.DiagName, "server_info", c.Filename)
+		tar.AddData(fpath, out)
+		l.Infof("Command completed: \"%v\" -> %s", c.RawCmd, c.Filename)
+	}
+	wg.Done()
+}
+
+func (c *systemCmd) executeCmd() ([]byte, error) {
 	output, err := c.run()
 	if err != nil {
-		err = fmt.Errorf("Command failed: `%v`, %s", c.RawCmd, err)
-		return "", err
+		err = fmt.Errorf("Command failed: %s, `%v`, %s", c.Filename, c.RawCmd, err)
+		// return output, err
 	}
-
-	// fpath := filepath.Join(SystemTmpDir, c.Filename)
-	fpath := filepath.Join(cfg.DiagName, c.Filename)
-	tar.AddData(fpath, output)
-	// err = writeFile(fpath, output)
-
-	if err != nil {
-		return "", err
-	}
-	res := fmt.Sprintf("Command completed: \"%v\"", c.RawCmd)
-	return res, nil
+	return output, err
 }
 
 func (c *systemCmd) run() ([]byte, error) {
@@ -65,4 +113,15 @@ func (c *systemCmd) run() ([]byte, error) {
 	cmd := exec.Command(bin, args...)
 	// stdoutStderr, err := cmd.CombinedOutput()
 	return cmd.CombinedOutput()
+}
+
+func (c *systemFile) checkFile() ([]string, error) {
+	files, err := filepath.Glob(c.RawFile)
+	if err != nil {
+		return nil, err
+	}
+	if len(files) > 0 {
+		return files, nil
+	}
+	return nil, fmt.Errorf("No files found for pattern %s", c.RawFile)
 }

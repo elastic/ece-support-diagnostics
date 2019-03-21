@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
 )
@@ -21,7 +22,7 @@ type Files []File
 //  TODO: needs to be cleaned up and variables should be passed in.
 func runCollectLogs(tar *Tarball) {
 	log := logp.NewLogger("collect-logs")
-	log.Info("Collecting ECE log files")
+	log.Infof("Collecting ECE log files")
 	// TODO: break into concatenated pattern, so the code can be commented.
 	elasticLogsPattern := regexp.MustCompile(`\/logs\/|ensemble-state-file.json$|stunnel.conf$|replicated.cfg.dynamic$`)
 
@@ -51,31 +52,57 @@ func (files *Files) findPattern(path string, re *regexp.Regexp) {
 }
 
 func (files Files) addToTar(tar *Tarball) {
-
+	l := logp.NewLogger("files")
 	clusterDiskPathRegex := regexp.MustCompile(`(.*\/services\/allocator\/containers\/)((?:elasticsearch|kibana).*)`)
 	eceDiskPathRegex := regexp.MustCompile(`(.*(?:\/services\/|bootstrap-logs\/))(.*)$`)
 
 	for _, file := range files {
 		match := clusterDiskPathRegex.FindStringSubmatch(file.filepath)
+
 		if len(match) == 3 {
 			// strip off *elastic/172.16.0.25/services/allocator/containers/
 			//  this should match elasticsearch and kibana clusters
-			tarRelPath := filepath.Join(cfg.DiagName, match[2])
-			tar.AddFile(file.filepath, file.info, tarRelPath)
+			if dateFilter(file, cfg.OlderThan) {
+				tarRelPath := filepath.Join(cfg.DiagName, match[2])
+				tar.AddFile(file.filepath, file.info, tarRelPath)
+				l.Infof("Adding log file: %s", match[2])
+			}
+
 		} else {
 			// strip off *elastic/172.16.0.25/services/ or *elastic/logs/bootstrap-logs/
 			//  everything after will be the path stored in the tar
 			match := eceDiskPathRegex.FindStringSubmatch(file.filepath)
+
 			if len(match) == 3 {
-				tarRelPath := filepath.Join(cfg.DiagName, "ece", match[2])
-				tar.AddFile(file.filepath, file.info, tarRelPath)
+				if dateFilter(file, cfg.OlderThan) {
+					tarRelPath := filepath.Join(cfg.DiagName, "ece", match[2])
+					tar.AddFile(file.filepath, file.info, tarRelPath)
+					l.Infof("Adding log file: %s", match[2])
+				}
+
 			} else {
-				// This should be a catch all. This shouldn't happen.
-				logp.Warn("THIS SHOULD NOT HAPPEN, %s", file.filepath)
-				tar.AddFile(file.filepath, file.info, cfg.ElasticFolder)
+				if dateFilter(file, cfg.OlderThan) {
+					// This should be a catch all. This shouldn't happen.
+					l.Warnf("THIS SHOULD NOT HAPPEN, %s", file.filepath)
+					tarRelPath := filepath.Join(cfg.DiagName, "ece", filepath.Base(file.filepath))
+					tar.AddFile(file.filepath, file.info, tarRelPath)
+					l.Infof("Adding log file: %s", filepath.Base(file.filepath))
+				}
 			}
 		}
 	}
+}
+
+func dateFilter(file File, window time.Duration) bool {
+	l := logp.NewLogger("files")
+
+	modTime := file.info.ModTime()
+	delta := cfg.StartTime.Sub(modTime)
+	if delta <= window {
+		return true
+	}
+	l.Warnf("Ignoring file: %s, %s too old", filepath.Base(file.filepath), delta-window)
+	return false
 }
 
 // func findAll(path string, tar *Tarball) {

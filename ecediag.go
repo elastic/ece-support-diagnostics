@@ -13,6 +13,7 @@ import (
 // Config holds configuration variables
 type Config struct {
 	StartTime     time.Time
+	OlderThan     time.Duration
 	Basepath      string
 	ElasticFolder string
 	DiagName      string
@@ -34,7 +35,7 @@ func New() *Config {
 
 // Initalize makes sure runtime variables are all set
 func (c *Config) Initalize() {
-
+	cfg.OlderThan = 72 * time.Hour
 	RunnerName, err := CheckStoragePath(c.ElasticFolder)
 	if err != nil {
 		panic(err)

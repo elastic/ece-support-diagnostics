@@ -6,6 +6,28 @@ type systemCmd struct {
 	Filename string
 	RawCmd   string
 }
+type systemFile struct {
+	Filename string
+	RawFile  string
+}
+
+// SystemFiles will collect files from the target host
+//  The RawFile runs a glob to find files. If more than one file is found
+//  the data from each file is concatenated into the target Filename
+var SystemFiles = []systemFile{
+	systemFile{
+		Filename: "linux-release.txt",
+		RawFile:  "/etc/*-release",
+	},
+	systemFile{
+		Filename: "fstab.txt",
+		RawFile:  "/etc/fstab",
+	},
+	systemFile{
+		Filename: "limits.txt",
+		RawFile:  "/etc/security/limits.conf",
+	},
+}
 
 // SystemCmd holds the set of system commands that need to be collected
 var SystemCmd = []systemCmd{
@@ -59,12 +81,6 @@ var SystemCmd = []systemCmd{
 		RawCmd:   "systemctl cat docker.service",
 	},
 
-	// Not sure if this is needed.
-	systemCmd{
-		Filename: "fips.txt",
-		RawCmd:   "cat /proc/sys/crypto/fips_enabled",
-	},
-
 	// command{"netstat_all.txt", "sudo netstat -anp"},
 	// command{"netstat_listening.txt", "sudo netstat -ntulpn"},
 	// command{"iptables.txt", "sudo iptables -L"},
@@ -72,23 +88,14 @@ var SystemCmd = []systemCmd{
 	// command{"mounts.txt", "sudo mount"},
 
 	systemCmd{
-		Filename: "linux-release.txt",
-		RawCmd:   "cat /etc/*-release",
-	},
-	systemCmd{
-		Filename: "fstab.txt",
-		RawCmd:   "cat /etc/fstab",
-	},
-	// command{"fstab.txt", "sudo cat /etc/fstab"},
-	systemCmd{
 		Filename: "cpu.txt",
 		RawCmd:   "cat /proc/cpuinfo",
 	},
+	// Not sure if this is needed.
 	systemCmd{
-		Filename: "limits.txt",
-		RawCmd:   "cat /etc/security/limits.conf",
+		Filename: "fips.txt",
+		RawCmd:   "cat /proc/sys/crypto/fips_enabled",
 	},
-
 	systemCmd{
 		Filename: "top_threads.txt",
 		RawCmd:   "top -b -n1 -H",
