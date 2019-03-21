@@ -62,7 +62,10 @@ func (files Files) addToTar(tar *Tarball) {
 		if len(match) == 3 {
 			// strip off *elastic/172.16.0.25/services/allocator/containers/
 			//  this should match elasticsearch and kibana clusters
-			if dateFilter(file, cfg.OlderThan) {
+			if file.zeroByteCheck(match[2]) {
+				continue
+			}
+			if file.dateFilter(cfg.OlderThan) {
 				tarRelPath := filepath.Join(cfg.DiagName, match[2])
 				tar.AddFile(file.filepath, file.info, tarRelPath)
 				l.Infof("Adding log file: %s", match[2])
@@ -72,16 +75,21 @@ func (files Files) addToTar(tar *Tarball) {
 			// strip off *elastic/172.16.0.25/services/ or *elastic/logs/bootstrap-logs/
 			//  everything after will be the path stored in the tar
 			match := eceDiskPathRegex.FindStringSubmatch(file.filepath)
-
 			if len(match) == 3 {
-				if dateFilter(file, cfg.OlderThan) {
+				if file.zeroByteCheck(match[2]) {
+					continue
+				}
+				if file.dateFilter(cfg.OlderThan) {
 					tarRelPath := filepath.Join(cfg.DiagName, "ece", match[2])
 					tar.AddFile(file.filepath, file.info, tarRelPath)
 					l.Infof("Adding log file: %s", match[2])
 				}
 
 			} else {
-				if dateFilter(file, cfg.OlderThan) {
+				if file.zeroByteCheck(filepath.Base(file.filepath)) {
+					continue
+				}
+				if file.dateFilter(cfg.OlderThan) {
 					// This should be a catch all. This shouldn't happen.
 					l.Warnf("THIS SHOULD NOT HAPPEN, %s", file.filepath)
 					tarRelPath := filepath.Join(cfg.DiagName, "ece", filepath.Base(file.filepath))
@@ -93,7 +101,16 @@ func (files Files) addToTar(tar *Tarball) {
 	}
 }
 
-func dateFilter(file File, window time.Duration) bool {
+func (file File) zeroByteCheck(name string) bool {
+	l := logp.NewLogger("files")
+	if file.info.Size() == int64(0) {
+		l.Infof("Skipping 0 byte file: %s", name)
+		return true
+	}
+	return false
+}
+
+func (file File) dateFilter(window time.Duration) bool {
 	l := logp.NewLogger("files")
 
 	modTime := file.info.ModTime()
