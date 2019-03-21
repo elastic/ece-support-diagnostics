@@ -40,6 +40,7 @@ func (c *Config) Initalize() {
 		panic(err)
 	}
 	cfg.RunnerName = RunnerName
+	fmt.Println(cfg.RunnerName)
 
 	DiagDate := fmt.Sprintf("-%d%02d%02d-%02d%02d%02d",
 		c.StartTime.Year(),
@@ -93,6 +94,7 @@ func (c *Config) Start() error {
 
 	runDockerCmds(tar)
 	runSystemCmds(tar)
+	runCollectLogs(tar)
 
 	// tar.t.Close()
 	// tar.g.Close()

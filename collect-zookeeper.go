@@ -1,10 +1,8 @@
 package ecediag
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"net"
 	"os/exec"
 	"path/filepath"
 
@@ -31,11 +29,13 @@ func zookeeperMNTR(container types.Container, tar *Tarball) {
 		return
 	}
 
-	ip, err := externalIP()
-	if err != nil {
-		log.Errorf("Not collecting `mntr` info, %s", err)
-		return
-	}
+	// ip, err := externalIP()
+	// if err != nil {
+	// 	log.Errorf("Not collecting `mntr` info, %s", err)
+	// 	return
+	// }
+
+	ip := container.NetworkSettings.Networks["bridge"].Gateway
 
 	portString := fmt.Sprintf("%d", port)
 	cmd := exec.Command("nc", ip, portString)
@@ -54,34 +54,34 @@ func zookeeperMNTR(container types.Container, tar *Tarball) {
 		log.Fatalf("It didn't work:\n%s\n%s", err, out)
 	}
 
-	fpath := filepath.Join(cfg.DiagName, "zookeeper_mntr.txt")
+	fpath := filepath.Join(cfg.DiagName, "ece", "zookeeper_mntr.txt")
 	tar.AddData(fpath, out)
 	// fmt.Println(test, err)
 }
 
-// find an ipv4 address to use
-// TODO: look into adding additional error handling, and not sure if ipv6 could be used
-func externalIP() (string, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "", err
-	}
-	for _, addr := range addrs {
-		var ip net.IP
-		switch v := addr.(type) {
-		case *net.IPNet:
-			ip = v.IP
-		case *net.IPAddr:
-			ip = v.IP
-		}
-		if ip == nil || ip.IsLoopback() {
-			continue
-		}
-		ip = ip.To4()
-		if ip == nil {
-			continue // not an ipv4 address
-		}
-		return ip.String(), nil
-	}
-	return "", errors.New("Could not determine an ipv4 address")
-}
+// // find an ipv4 address to use
+// // TODO: look into adding additional error handling, and not sure if ipv6 could be used
+// func externalIP() (string, error) {
+// 	addrs, err := net.InterfaceAddrs()
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	for _, addr := range addrs {
+// 		var ip net.IP
+// 		switch v := addr.(type) {
+// 		case *net.IPNet:
+// 			ip = v.IP
+// 		case *net.IPAddr:
+// 			ip = v.IP
+// 		}
+// 		if ip == nil || ip.IsLoopback() {
+// 			continue
+// 		}
+// 		ip = ip.To4()
+// 		if ip == nil {
+// 			continue // not an ipv4 address
+// 		}
+// 		return ip.String(), nil
+// 	}
+// 	return "", errors.New("Could not determine an ipv4 address")
+// }

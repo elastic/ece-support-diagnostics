@@ -108,7 +108,8 @@ func (tw *Tarball) AddData(filePath string, b []byte) error {
 
 // AddFile reads a file and adds it to the tar file. The basePath is removed from the filepath for
 //  the path preserved in the tar file.
-func (tw *Tarball) AddFile(filePath string, info os.FileInfo, basePath string) error {
+// func (tw *Tarball) AddFile(filePath string, info os.FileInfo, basePath string) error {
+func (tw *Tarball) AddFile(filePath string, info os.FileInfo, relPath string) error {
 	tw.m.Lock()
 	defer tw.m.Unlock()
 
@@ -118,9 +119,10 @@ func (tw *Tarball) AddFile(filePath string, info os.FileInfo, basePath string) e
 		return err
 	}
 
-	archiveFile := strings.TrimLeft(strings.TrimPrefix(filePath, strings.TrimRight(basePath, "/")), "/")
-	archiveFilePath := filepath.Join(cfg.DiagName, archiveFile)
-	header.Name = archiveFilePath
+	// archiveFile := strings.TrimLeft(strings.TrimPrefix(filePath, strings.TrimRight(basePath, "/")), "/")
+	// archiveFilePath := filepath.Join(cfg.DiagName, archiveFile)
+	// header.Name = archiveFilePath
+	header.Name = relPath
 	// fmt.Println(header.Name)
 
 	err = tw.t.WriteHeader(header)
