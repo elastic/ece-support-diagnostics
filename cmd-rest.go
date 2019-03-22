@@ -50,12 +50,12 @@ var rest = []Rest{
 				Filename: "elasticsearch/{{ .cluster_id }}/_ece_plan.json",
 				Request:  "/api/v1/clusters/elasticsearch/{{ .cluster_id }}/plan/activity",
 			},
-			Rest{
-				// THIS MUST BE COLLECTED AS A NON-PRIVILEGED USER!!!
-				// if not, it would expose sensitive data that we should not collect.
-				Filename: "elasticsearch/{{ .cluster_id }}/_ece_cluster_metadata.json",
-				Request:  "/api/v1/clusters/elasticsearch/{{ .cluster_id }}/metadata/raw",
-			},
+			// Rest{
+			// 	// THIS MUST BE COLLECTED AS A NON-PRIVILEGED USER!!!
+			// 	// if not, it would expose sensitive data that we should not collect.
+			// 	Filename: "elasticsearch/{{ .cluster_id }}/_ece_cluster_metadata.json",
+			// 	Request:  "/api/v1/clusters/elasticsearch/{{ .cluster_id }}/metadata/raw",
+			// },
 			Rest{
 				Filename: "elasticsearch/{{ .cluster_id }}/alias.json",
 				Request:  eceProxy("/_alias?pretty&human"),

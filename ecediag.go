@@ -41,7 +41,7 @@ func (c *Config) Initalize() {
 		panic(err)
 	}
 	cfg.RunnerName = RunnerName
-	fmt.Println(cfg.RunnerName)
+	fmt.Printf("Runner Name: %s\n", cfg.RunnerName)
 
 	DiagDate := fmt.Sprintf("-%d%02d%02d-%02d%02d%02d",
 		c.StartTime.Year(),
@@ -80,7 +80,7 @@ func (c *Config) Start() error {
 	cfg = c
 	cfg.Initalize()
 
-	fmt.Println(cfg.ElasticFolder)
+	fmt.Printf("Using %s for ECE install location\n", cfg.ElasticFolder)
 
 	l := logp.NewLogger("Main")
 	l.Infof("Using %s as temporary storage location", c.Basepath)

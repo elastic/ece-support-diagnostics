@@ -1,6 +1,7 @@
 package ecediag
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -268,13 +270,13 @@ func readJSON(in []byte) interface{} {
 // getCredentials is used for securely prompting for a password from stdin
 //  it uses the x/crypto/ssh/terminal package to ensure stdin echo is disabled
 func getCredentials() (string, string) {
-	fmt.Println("Please Enter Your ECE READ-ONLY Credentials")
+	fmt.Println("Please Enter Your ECE Admin Credentials")
 
-	// reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(os.Stdin)
 
-	// fmt.Print("Enter Username: ")
-	// username, _ := reader.ReadString('\n')
-	fmt.Println("Username (read-only)")
+	fmt.Print("Enter Username: ")
+	username, _ := reader.ReadString('\n')
+	// fmt.Println("Username (read-only)")
 
 	fmt.Print("Enter Password: ")
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
@@ -284,6 +286,6 @@ func getCredentials() (string, string) {
 	}
 	password := string(bytePassword)
 
-	// return strings.TrimSpace(username), strings.TrimSpace(password)
-	return "readonly", strings.TrimSpace(password)
+	return strings.TrimSpace(username), strings.TrimSpace(password)
+	// return "readonly", strings.TrimSpace(password)
 }

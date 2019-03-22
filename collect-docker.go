@@ -69,15 +69,14 @@ func runDockerCmds(tar *Tarball) {
 			zookeeperMNTR(container, tar)
 			fmt.Println("[✔] Collected Zookeeper data")
 		}
-
-		fmt.Println("[ ] Collecting Docker logs")
-
-		dockerLogs(cli, container, since, tar)
-
-		clearStdoutLine()
-		fmt.Println("[✔] Collected Docker logs")
 	}
 
+	fmt.Println("[ ] Collecting Docker logs")
+	for _, container := range Containers {
+		dockerLogs(cli, container, since, tar)
+	}
+	clearStdoutLine()
+	fmt.Println("[✔] Collected Docker logs")
 }
 
 func dockerLogs(cli *client.Client, container types.Container, since string, tar *Tarball) {

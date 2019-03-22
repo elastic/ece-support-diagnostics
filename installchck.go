@@ -14,7 +14,7 @@ var ContainerSets = []string{}
 // CheckStoragePath checks the filesystem for a known folder structure for an ECE install
 func CheckStoragePath(eceInstallPath string) (string, error) {
 	sp := filepath.Join(eceInstallPath, "*/services/runners/containers/docker/")
-	fmt.Printf("Checking for ECE install: %s\n", sp)
+	fmt.Printf("Checking the ECE install path, %s\n", sp)
 	installPaths, err := filepath.Glob(sp)
 	if err != nil {
 		log.Fatal(err)
@@ -40,7 +40,7 @@ func CheckStoragePath(eceInstallPath string) (string, error) {
 				ContainerSets = append(ContainerSets, ContainerSet.Name())
 			}
 		}
-		fmt.Printf("Discovered container sets: %v\n", ContainerSets)
+		fmt.Printf("Discovered: %v\n", ContainerSets)
 		return runnerName, nil
 	}
 	return "", fmt.Errorf("Could not find a valid ECE install location")
