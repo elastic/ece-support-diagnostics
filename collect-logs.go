@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
@@ -118,7 +119,12 @@ func (file File) dateFilter(window time.Duration) bool {
 	if delta <= window {
 		return true
 	}
-	l.Warnf("Ignoring file: %s, %s too old", filepath.Base(file.filepath), delta-window)
+	overLimitString := (delta - window).Truncate(time.Millisecond).String()
+	limitString := window.Truncate(time.Millisecond).String()
+
+	fp := strings.TrimLeft(file.filepath, cfg.ElasticFolder)
+
+	l.Warnf("Ignoring file: %s threshold, %s too old, %s", limitString, overLimitString, fp)
 	return false
 }
 
