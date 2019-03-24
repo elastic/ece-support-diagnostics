@@ -92,7 +92,7 @@ func TestRest_templater(t *testing.T) {
 			name: "test1",
 			item: Rest{
 				Filename: "{{ .test1 }}/test1",
-				Request:  "{{ .test2 }}/test2",
+				URI:      "{{ .test2 }}/test2",
 			},
 			Obj: readJSON([]byte(`{"test1":"value1","test2":"value2"}`)),
 		},
@@ -103,8 +103,8 @@ func TestRest_templater(t *testing.T) {
 			if tt.item.Filename != "value1/test1" {
 				t.Errorf("expected value1/test1, got %s", tt.item.Filename)
 			}
-			if tt.item.Request != "value2/test2" {
-				t.Errorf("expected value2/test2, got %s", tt.item.Request)
+			if tt.item.URI != "value2/test2" {
+				t.Errorf("expected value2/test2, got %s", tt.item.URI)
 			}
 		})
 	}
