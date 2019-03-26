@@ -82,7 +82,7 @@ func Test_runTemplate(t *testing.T) {
 	}
 }
 
-func TestRest_templater(t *testing.T) {
+func TestRest_templateService(t *testing.T) {
 	tests := []struct {
 		name string
 		item Rest
@@ -99,7 +99,7 @@ func TestRest_templater(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.item.templater(tt.Obj)
+			tt.item.templateService(tt.Obj)
 			if tt.item.Filename != "value1/test1" {
 				t.Errorf("expected value1/test1, got %s", tt.item.Filename)
 			}

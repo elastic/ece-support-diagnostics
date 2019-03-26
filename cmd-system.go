@@ -47,6 +47,7 @@ var SystemCmd = []systemCmd{
 		Filename: "df.txt",
 		RawCmd:   "df -h",
 	},
+	// cfg.ElasticFolder is not initalized at this point, this does not work.
 	systemCmd{
 		Filename: "fs_permissions_storage_path.txt",
 		RawCmd:   fmt.Sprintf("ls -la %s", cfg.ElasticFolder),

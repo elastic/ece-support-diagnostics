@@ -29,6 +29,7 @@ type HTTPClient struct {
 	endpoint string
 	username string
 	passwd   string
+	writer   func(filepath string, b []byte) error
 }
 
 // RequestTask task
@@ -42,6 +43,7 @@ func RunRest(d types.Container, tar *Tarball) {
 	// var err error
 
 	httpClient := NewClient()
+	httpClient.writer = tar.AddData
 	httpClient.endpoint = "https://0.0.0.0:12443/"
 	err := httpClient.SetupCredentials()
 	panicError(err)
@@ -52,7 +54,7 @@ func RunRest(d types.Container, tar *Tarball) {
 	for _, item := range rest {
 		wg.Add(1)
 		task := RequestTask{config: httpClient, restItem: item}
-		go task.fetch(tar, &wg)
+		go task.fetch(&wg)
 	}
 	wg.Wait()
 
@@ -116,14 +118,19 @@ func (r *HTTPClient) SetupCredentials() error {
 }
 
 // fetch dispatches the Rest/HTTP request
-func (parent *RequestTask) fetch(tar *Tarball, wg *sync.WaitGroup) {
+func (parent *RequestTask) fetch(wg *sync.WaitGroup) {
 
 	url := parent.config.endpoint + strings.TrimLeft(parent.restItem.URI, "/")
 	req, err := http.NewRequest("GET", url, nil)
 	// TODO: handle err?
 
+	// set auth
 	req.SetBasicAuth(parent.config.username, parent.config.passwd)
-	req.Header.Set("X-Management-Request", "true")
+	// set headers
+	for k, v := range parent.restItem.Headers {
+		req.Header.Set(k, v)
+	}
+	// req.Header.Set("X-Management-Request", "true")
 	resp, err := parent.config.client.Do(req)
 	if err != nil {
 		log.Fatal(url, err)
@@ -132,16 +139,19 @@ func (parent *RequestTask) fetch(tar *Tarball, wg *sync.WaitGroup) {
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	archiveFile := filepath.Join(cfg.DiagName, parent.restItem.Filename)
-	tar.AddData(archiveFile, respBody)
 
-	parent.checkSubItems(respBody, tar)
+	// write response data to file
+	err = parent.config.writer(archiveFile, respBody)
+	panicError(err)
+
+	parent.checkSubItems(respBody)
 
 	wg.Done()
 }
 
 // checkSubItems is used when `Sub` is defined in the Rest object, and contains a `Loop` item.
 //  It tries to unpack the parent JSON response into a map, and assert the proper type (array/object)
-func (parent *RequestTask) checkSubItems(respBody []byte, tar *Tarball) {
+func (parent *RequestTask) checkSubItems(respBody []byte) {
 
 	if len(parent.restItem.Sub) > 0 {
 
@@ -155,19 +165,19 @@ func (parent *RequestTask) checkSubItems(respBody []byte, tar *Tarball) {
 		case []interface{}:
 			// TODO, this should only happen when loop is specified.
 			fmt.Println(json, "Array!")
-			parent.subLoop(json, tar)
-			// parent.iterateSub(resp, tar)
+			parent.subLoop(json)
+			// parent.iterateSub(resp)
 
 		// Json response for parent Rest response is a JSON Object
 		case map[string]interface{}:
 			if parent.restItem.Loop == "" {
 				// Iterate with top level map
-				parent.iterateSub(resp, tar)
+				parent.iterateSub(resp)
 			} else {
 				if val, ok := json[parent.restItem.Loop]; ok {
 					switch data := val.(type) {
 					case []interface{}:
-						parent.subLoop(data, tar)
+						parent.subLoop(data)
 					default:
 						// break, the key specified is not an array
 					}
@@ -182,13 +192,13 @@ func (parent *RequestTask) checkSubItems(respBody []byte, tar *Tarball) {
 	}
 }
 
-func (parent *RequestTask) subLoop(respArray []interface{}, tar *Tarball) {
+func (parent *RequestTask) subLoop(respArray []interface{}) {
 	for _, Item := range respArray {
-		parent.iterateSub(Item, tar)
+		parent.iterateSub(Item)
 	}
 }
 
-func (parent *RequestTask) iterateSub(It interface{}, tar *Tarball) {
+func (parent *RequestTask) iterateSub(It interface{}) {
 	var wg sync.WaitGroup
 	l := logp.NewLogger("Elasticsearch")
 
@@ -198,15 +208,15 @@ func (parent *RequestTask) iterateSub(It interface{}, tar *Tarball) {
 	for _, item := range parent.restItem.Sub {
 		wg.Add(1)
 		// render template
-		item.templater(It)
+		item.templateService(It)
 		task := RequestTask{config: parent.config, restItem: item}
-		go task.fetch(tar, &wg)
+		go task.fetch(&wg)
 	}
 	wg.Wait()
 }
 
-// templater when called runs templating for the defined fields
-func (R *Rest) templater(Obj interface{}) {
+// templateService controls the fields to be templated
+func (R *Rest) templateService(Obj interface{}) {
 	R.Filename = runTemplate(R.Filename, Obj)
 	R.URI = runTemplate(R.URI, Obj)
 }

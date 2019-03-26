@@ -22,15 +22,27 @@ type Tarball struct {
 	m        sync.Mutex
 }
 
+func createNewTar(filePath string) (*Tarball, error) {
+	tar := &Tarball{filepath: filePath}
+	err := tar.Create()
+	if err != nil {
+		// handle error
+	}
+	// defer tar.t.Close()
+	// defer tar.g.Close()
+	return tar, err
+}
+
 // Create starts a new tar/gz file to write data into
-func (tw *Tarball) Create(filePath string) error {
-	file, err := os.Create(filePath)
+func (tw *Tarball) Create() error {
+	file, err := os.Create(tw.filepath)
 	if err != nil {
 		panic(err)
 	}
 	// // set up the output file
 	// defer file.Close()
-	tw.filepath = filePath
+
+	// tw.filepath = filePath
 
 	// set up the gzip writer
 	gw := gzip.NewWriter(file)

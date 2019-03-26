@@ -13,7 +13,7 @@ import (
 // zookeeperMNTR sends `echo mntr|nc ip port` for zookeeper
 //  could not use localhost or 0.0.0.0, the response gets dropped
 //  discovers the zookeep docker port between 2100-2199
-//  then sends the command to the first ipv4 address found on the host
+//  then sends the command to ipv4 address of the docker gateway
 func zookeeperMNTR(container types.Container, tar *Tarball) {
 	log := logp.NewLogger("zookeeper")
 	log.Info("Collecting zookeeper mntr")
@@ -28,12 +28,6 @@ func zookeeperMNTR(container types.Container, tar *Tarball) {
 		log.Error("Could not determine Zookeeper port")
 		return
 	}
-
-	// ip, err := externalIP()
-	// if err != nil {
-	// 	log.Errorf("Not collecting `mntr` info, %s", err)
-	// 	return
-	// }
 
 	ip := container.NetworkSettings.Networks["bridge"].Gateway
 
@@ -58,30 +52,3 @@ func zookeeperMNTR(container types.Container, tar *Tarball) {
 	tar.AddData(fpath, out)
 	// fmt.Println(test, err)
 }
-
-// // find an ipv4 address to use
-// // TODO: look into adding additional error handling, and not sure if ipv6 could be used
-// func externalIP() (string, error) {
-// 	addrs, err := net.InterfaceAddrs()
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	for _, addr := range addrs {
-// 		var ip net.IP
-// 		switch v := addr.(type) {
-// 		case *net.IPNet:
-// 			ip = v.IP
-// 		case *net.IPAddr:
-// 			ip = v.IP
-// 		}
-// 		if ip == nil || ip.IsLoopback() {
-// 			continue
-// 		}
-// 		ip = ip.To4()
-// 		if ip == nil {
-// 			continue // not an ipv4 address
-// 		}
-// 		return ip.String(), nil
-// 	}
-// 	return "", errors.New("Could not determine an ipv4 address")
-// }
