@@ -10,6 +10,8 @@ import (
 	"sync"
 
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/go-sysinfo"
+	"github.com/shirou/gopsutil/cpu"
 )
 
 func runSystemCmds(tar *Tarball) {
@@ -27,6 +29,33 @@ func runSystemCmds(tar *Tarball) {
 		go sf.processTask(tar, &wg)
 	}
 	wg.Wait()
+
+	// fpath := filepath.Join(cfg.DiagName, "server_info", c.Filename)
+	fp := func(path string) string { return filepath.Join(cfg.DiagName, "server_info", path) }
+
+	sysInfo := sysinfo.Go()
+	writeJSON(fp("GoSysInfo.txt"), sysInfo, tar)
+	hostInfo, _ := sysinfo.Host()
+	writeJSON(fp("GoHostInfo.txt"), hostInfo, tar)
+	procs, _ := sysinfo.Processes()
+
+	procInfo := make([]interface{}, 100)
+	for _, proc := range procs {
+		info, _ := proc.Info()
+		procInfo = append(procInfo, info)
+		// if err != nil {
+		// 	if os.IsPermission(err) {
+		// 		continue
+		// 	}
+		// 	t.Fatal(err)
+		// }
+	}
+	writeJSON(fp("GoProcInfo.txt"), procInfo, tar)
+
+	cpuInfo, _ := cpu.Info()
+	writeJSON(fp("GoCPUinfo.txt"), cpuInfo, tar)
+	cpuTimeStat, _ := cpu.Times(false)
+	writeJSON(fp("GoCPUtimeStat.txt"), cpuTimeStat, tar)
 
 	// resc, errc := make(chan string), make(chan error)
 	// for _, cmd := range SystemCmd {

@@ -18,7 +18,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/elastic/beats/libbeat/logp"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -39,7 +38,7 @@ type RequestTask struct {
 }
 
 // RunRest starts the chain of functions to collect the Rest/HTTP calls
-func RunRest(d types.Container, tar *Tarball) {
+func runRest(tar *Tarball) {
 	// var err error
 
 	httpClient := NewClient()
@@ -47,6 +46,16 @@ func RunRest(d types.Container, tar *Tarball) {
 	httpClient.endpoint = "https://0.0.0.0:12443/"
 	err := httpClient.SetupCredentials()
 	panicError(err)
+
+	fmt.Println("[ ] Collecting ECE metricbeat data")
+	creds := &ECEendpoint{
+		eceAPI: httpClient.endpoint,
+		user:   httpClient.username,
+		pass:   httpClient.passwd,
+	}
+	ScrollRunner(creds, tar)
+	clearStdoutLine()
+	fmt.Println("[✔] Collected ECE metricbeat data")
 
 	fmt.Println("[ ] Collecting API information ECE and Elasticsearch")
 
@@ -66,7 +75,8 @@ func RunRest(d types.Container, tar *Tarball) {
 func NewClient() *HTTPClient {
 	var tr = &http.Transport{
 		// Disable Certificate Checking
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		ResponseHeaderTimeout: 15 * time.Second,
 		// Connection timeout = 5s
 		Dial: (&net.Dialer{
 			Timeout: 5 * time.Second,

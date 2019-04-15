@@ -47,6 +47,12 @@ var rest = []Rest{
 		URI:      "/api/v1/platform/infrastructure/proxies",
 		Headers:  eceHeader(),
 	},
+	// TODO: Add kibana api/stats, api/settings, api/status ?
+	Rest{
+		Filename: "ece/kibana_clusters.json",
+		URI:      "/api/v1/clusters/kibana",
+		Headers:  eceHeader(),
+	},
 	Rest{
 		Filename: "ece/es_clusters.json",
 		URI:      "/api/v1/clusters/elasticsearch",

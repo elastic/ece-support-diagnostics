@@ -31,6 +31,7 @@ func (c *Config) Start() error {
 	// tar.Create(TarFile)
 
 	runDockerCmds(tar)
+	runRest(tar)
 	runSystemCmds(tar)
 	runCollectLogs(tar)
 

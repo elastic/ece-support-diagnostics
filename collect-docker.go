@@ -58,11 +58,11 @@ func runDockerCmds(tar *Tarball) {
 	l.Infof("Docker will ignore log entries older than %s", since)
 
 	for _, container := range Containers {
-		if container.Names[0] == "/frc-cloud-uis-cloud-ui" {
-			if cfg.DisableRest != true {
-				RunRest(container, tar)
-			}
-		}
+		// if container.Names[0] == "/frc-cloud-uis-cloud-ui" {
+		// 	if cfg.DisableRest != true {
+		// 		runRest(tar)
+		// 	}
+		// }
 
 		// https://github.com/elastic/ece-support-diagnostics/issues/5
 		if container.Names[0] == "/frc-zookeeper-servers-zookeeper" {
@@ -114,9 +114,15 @@ func dockerLogs(cli *client.Client, container types.Container, since string, tar
 
 		// Need to evaluate how to stream bytes to tar file, rather than copy all bytes?
 		stdout, _ := ioutil.ReadAll(stdoutput)
-		tar.AddData(filePath+".stdout.log", stdout)
+		// ignore empty data
+		if len(stdout) > 0 {
+			tar.AddData(filePath+".stdout.log", stdout)
+		}
 		stderr, _ := ioutil.ReadAll(stderror)
-		tar.AddData(filePath+".stderr.log", stderr)
+		// ignore empty data
+		if len(stderr) > 0 {
+			tar.AddData(filePath+".stderr.log", stderr)
+		}
 
 		// //read the first 8 bytes to ignore the HEADER part from docker container logs
 		// p := make([]byte, 8)
