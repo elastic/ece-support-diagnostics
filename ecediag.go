@@ -5,11 +5,19 @@ import (
 	"path/filepath"
 
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/ece-support-diagnostics/collectors/docker"
+	"github.com/elastic/ece-support-diagnostics/collectors/restAPI"
+	"github.com/elastic/ece-support-diagnostics/collectors/systemInfo"
+	"github.com/elastic/ece-support-diagnostics/collectors/systemLogs"
+	"github.com/elastic/ece-support-diagnostics/config"
+	"github.com/elastic/ece-support-diagnostics/store/tar"
+	"github.com/elastic/ece-support-diagnostics/uploader"
 )
 
 // Start is the entry point for the ecediag package
-func (c *Config) Start() error {
-	cfg = c
+func Start(c *config.Config) error {
+
+	cfg := c
 	cfg.Initalize()
 
 	fmt.Printf("Using %s for ECE install location\n", cfg.ElasticFolder)
@@ -19,31 +27,30 @@ func (c *Config) Start() error {
 
 	// tar := new(Tarball)
 
-	tarFile := filepath.Join(c.Basepath, c.DiagName) + ".tar.gz"
+	tarFilepath := filepath.Join(c.Basepath, c.DiagName) + ".tar.gz"
 
-	tar, err := createNewTar(tarFile)
+	tar, err := tar.Create(tarFilepath)
+	defer tar.Close()
+
 	if err != nil {
 		// handle err
 	}
-	defer tar.t.Close()
-	defer tar.g.Close()
 
-	// tar.Create(TarFile)
+	// runDockerCmds(tar)
+	docker.Run(tar, cfg)
+	restAPI.Run(tar, rest, cfg)
+	systemInfo.Run(tar, SystemCmds, SystemFiles, cfg)
+	systemLogs.Run(tar, cfg)
 
-	runDockerCmds(tar)
-	runRest(tar)
-	runSystemCmds(tar)
-	runCollectLogs(tar)
+	logfilePath := filepath.Join(c.Basepath, c.DiagName+".log")
+	logTarPath := filepath.Join(cfg.DiagName, "diagnostic.log")
+	tar.Finalize(logfilePath, logTarPath)
 
-	// tar.t.Close()
-	// tar.g.Close()
-
-	tar.Finalize(filepath.Join(c.Basepath, c.DiagName+".log"))
 	if cfg.UploadUID != "" {
-		runUpload(tar.filepath)
+		uploader.RunUpload(tar.Filepath(), cfg)
 	}
-
 	// add an empty line
 	fmt.Println()
 	return nil
+
 }

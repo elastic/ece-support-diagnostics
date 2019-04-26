@@ -1,4 +1,4 @@
-package ecediag
+package docker
 
 // func Test_safeFilename(t *testing.T) {
 // 	type args struct {

@@ -1,28 +1,22 @@
-package ecediag
+package zookeeper
 
-import (
-	"testing"
-
-	"github.com/docker/docker/api/types"
-)
-
-func Test_zookeeperMNTR(t *testing.T) {
-	type args struct {
-		container types.Container
-		tar       *Tarball
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			zookeeperMNTR(tt.args.container, tt.args.tar)
-		})
-	}
-}
+// func Test_zookeeperMNTR(t *testing.T) {
+// 	type args struct {
+// 		container types.Container
+// 		tar       *tar.Tarball
+// 	}
+// 	tests := []struct {
+// 		name string
+// 		args args
+// 	}{
+// 		// TODO: Add test cases.
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			zookeeperMNTR(tt.args.container, tt.args.tar)
+// 		})
+// 	}
+// }
 
 // func Test_externalIP(t *testing.T) {
 // 	// This is broken. The function gets the first non-loopback interface and

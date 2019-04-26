@@ -1,4 +1,4 @@
-package ecediag
+package checker
 
 import "testing"
 

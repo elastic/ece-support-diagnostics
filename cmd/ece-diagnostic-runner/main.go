@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	sd "github.com/elastic/ece-support-diagnostics"
+	"github.com/elastic/ece-support-diagnostics/config"
 )
 
 var (
@@ -26,13 +27,12 @@ func init() {
 }
 
 func main() {
-	ece := sd.New()
+	ece := config.New()
 	ece.Basepath = basepath
 	ece.ElasticFolder = elasticfolder
 	ece.DisableRest = disablerest
 	ece.UploadUID = uploadUID
-	ece.Start()
-
+	sd.Start(ece)
 	// if err := sd.Start(); err != nil {
 	// 	os.Exit(1)
 	// }

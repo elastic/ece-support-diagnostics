@@ -1,4 +1,4 @@
-package ecediag
+package helpers
 
 import (
 	"fmt"
@@ -26,13 +26,39 @@ import (
 // 	return ioutil.WriteFile(filepath, data, 0644)
 // }
 
-func panicError(err error) {
+func PanicError(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
-func clearStdoutLine() {
+func ClearStdoutLine() {
 	fmt.Printf("\033[F") // back to previous line
 	fmt.Printf("\033[K") // clear line
+}
+
+func ByteCountDecimal(b int64) string {
+	const unit = 1000
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
+}
+
+func ByteCountBinary(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }

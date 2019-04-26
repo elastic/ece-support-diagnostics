@@ -1,4 +1,4 @@
-package ecediag
+package tar
 
 // func TestTarball_Create(t *testing.T) {
 // 	type args struct {

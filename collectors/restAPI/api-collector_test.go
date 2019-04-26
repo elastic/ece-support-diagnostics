@@ -1,4 +1,4 @@
-package ecediag
+package restAPI
 
 import (
 	"fmt"

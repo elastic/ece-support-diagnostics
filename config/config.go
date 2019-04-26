@@ -1,10 +1,11 @@
-package ecediag
+package config
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/ece-support-diagnostics/checker"
 )
 
 // Config holds configuration variables
@@ -33,7 +34,7 @@ func New() *Config {
 // Initalize makes sure runtime variables are all set
 func (c *Config) Initalize() {
 	cfg.OlderThan = 72 * time.Hour
-	RunnerName, err := CheckStoragePath(c.ElasticFolder)
+	RunnerName, err := checker.CheckStoragePath(c.ElasticFolder)
 	if err != nil {
 		panic(err)
 	}

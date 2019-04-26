@@ -1,4 +1,4 @@
-package ecediag
+package docker
 
 import (
 	"bytes"
@@ -15,11 +15,25 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/ece-support-diagnostics/collectors/zookeeper"
+	"github.com/elastic/ece-support-diagnostics/config"
+	"github.com/elastic/ece-support-diagnostics/helpers"
+	"github.com/elastic/ece-support-diagnostics/store"
 )
 
 var re = regexp.MustCompile(`\/f[r|a]c-(\w+(?:-\w+)?)-(\w+)`)
 
-func runDockerCmds(tar *Tarball) {
+type fileSystemStore struct {
+	store.ContentStore
+	cfg *config.Config
+}
+
+func Run(t store.ContentStore, config *config.Config) {
+	store := fileSystemStore{t, config}
+	store.runDockerCmds()
+}
+
+func (t fileSystemStore) runDockerCmds() {
 	l := logp.NewLogger("docker")
 	// log := logp.NewLogger("docker")
 	dockerMsg := "Collecting Docker information"
@@ -40,21 +54,31 @@ func runDockerCmds(tar *Tarball) {
 	Containers, err := cli.ContainerList(ctx, types.ContainerListOptions{})
 	// fmt.Printf("%+v\n", Containers)
 
-	fp := func(path string) string { return filepath.Join(cfg.DiagName, "server_info", path) }
-	writeJSON(fp("DockerContainers.json"), cmd(Containers, err), tar)
+	fp := func(path string) string { return filepath.Join(t.cfg.DiagName, "server_info", path) }
 
-	writeJSON(fp("DockerRepository.json"), cmd(cli.ImageList(ctx, types.ImageListOptions{})), tar)
+	t.writeJSON(fp("DockerContainers.json"), Containers)
+	// writeJSON(fp("DockerContainers.json"), cmd(Containers, err), tar)
 
-	writeJSON(fp("DockerInfo.json"), cmd(cli.Info(ctx)), tar)
+	imageList, _ := cli.ImageList(ctx, types.ImageListOptions{})
+	t.writeJSON(fp("DockerRepository.json"), imageList)
+	// writeJSON(fp("DockerRepository.json"), cmd(cli.ImageList(ctx, types.ImageListOptions{})), tar)
 
-	writeJSON(fp("DockerDiskUsage.json"), cmd(cli.DiskUsage(ctx)), tar)
+	info, _ := cli.Info(ctx)
+	t.writeJSON(fp("DockerInfo.json"), info)
+	// writeJSON(fp("DockerInfo.json"), cmd(cli.Info(ctx)), tar)
 
-	writeJSON(fp("DockerServerVersion.json"), cmd(cli.ServerVersion(ctx)), tar)
+	diskUsage, _ := cli.DiskUsage(ctx)
+	t.writeJSON(fp("DockerDiskUsage.json"), diskUsage)
+	// writeJSON(fp("DockerDiskUsage.json"), cmd(cli.DiskUsage(ctx)), tar)
 
-	clearStdoutLine()
+	serverVersion, _ := cli.ServerVersion(ctx)
+	t.writeJSON(fp("DockerServerVersion.json"), serverVersion)
+	// writeJSON(fp("DockerServerVersion.json"), cmd(cli.ServerVersion(ctx)), tar)
+
+	helpers.ClearStdoutLine()
 	fmt.Println("[✔] Collected Docker information")
 
-	since := cfg.StartTime.Add(-cfg.OlderThan).Format(time.RFC3339Nano)
+	since := t.cfg.StartTime.Add(-t.cfg.OlderThan).Format(time.RFC3339Nano)
 	l.Infof("Docker will ignore log entries older than %s", since)
 
 	for _, container := range Containers {
@@ -66,27 +90,28 @@ func runDockerCmds(tar *Tarball) {
 
 		// https://github.com/elastic/ece-support-diagnostics/issues/5
 		if container.Names[0] == "/frc-zookeeper-servers-zookeeper" {
-			zookeeperMNTR(container, tar)
+			zookeeper.Run(t, container, t.cfg)
+			// zookeeperMNTR(container, tar)
 			fmt.Println("[✔] Collected Zookeeper data")
 		}
 	}
 
 	fmt.Println("[ ] Collecting Docker logs")
 	for _, container := range Containers {
-		dockerLogs(cli, container, since, tar)
+		t.dockerLogs(cli, container, since)
 	}
-	clearStdoutLine()
+	helpers.ClearStdoutLine()
 	fmt.Println("[✔] Collected Docker logs")
 }
 
-func dockerLogs(cli *client.Client, container types.Container, since string, tar *Tarball) {
+func (t fileSystemStore) dockerLogs(cli *client.Client, container types.Container, since string) {
 	l := logp.NewLogger("docker_logs")
 
 	// getValue := func(key string) string { if val, ok := container.Labels[key]; ok {return val}; return "" }
 	dockerName := container.Names[0]
 
 	if strings.HasPrefix(dockerName, "/frc") || strings.HasPrefix(dockerName, "/fac") {
-		filePath := createFilePath(container)
+		filePath := t.createFilePath(container)
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
@@ -116,12 +141,12 @@ func dockerLogs(cli *client.Client, container types.Container, since string, tar
 		stdout, _ := ioutil.ReadAll(stdoutput)
 		// ignore empty data
 		if len(stdout) > 0 {
-			tar.AddData(filePath+".stdout.log", stdout)
+			t.AddData(filePath+".stdout.log", stdout)
 		}
 		stderr, _ := ioutil.ReadAll(stderror)
 		// ignore empty data
 		if len(stderr) > 0 {
-			tar.AddData(filePath+".stderr.log", stderr)
+			t.AddData(filePath+".stderr.log", stderr)
 		}
 
 		// //read the first 8 bytes to ignore the HEADER part from docker container logs
@@ -137,7 +162,7 @@ func dockerLogs(cli *client.Client, container types.Container, since string, tar
 		cTop, err := cli.ContainerTop(ctx, container.ID, []string{})
 		cTjson, err := json.MarshalIndent(cTop, "", "  ")
 		// err = ioutil.WriteFile(filePath+".top", cTjson, 0644)
-		tar.AddData(filePath+".top", cTjson)
+		t.AddData(filePath+".top", cTjson)
 
 		if err != nil {
 			panic(err)
@@ -148,12 +173,12 @@ func dockerLogs(cli *client.Client, container types.Container, since string, tar
 
 // TODO: FIX THIS, regex should be passed in, not global
 // func createFilePath(container types.Container, re *regexp.Regexp) string {
-func createFilePath(container types.Container) string {
+func (t fileSystemStore) createFilePath(container types.Container) string {
 	dockerName := container.Names[0]
 	labels := container.Labels
 
 	eceLogPath := func(kind, filename string) string {
-		return filepath.Join(cfg.DiagName, "ece", kind, filename)
+		return filepath.Join(t.cfg.DiagName, "ece", kind, filename)
 	}
 	// if a runner launches the container then it has `runner.container_name`
 	if containerName, ok := labels["co.elastic.cloud.runner.container_name"]; ok {
@@ -172,7 +197,7 @@ func createFilePath(container types.Container) string {
 		instanceName := labels["co.elastic.cloud.allocator.instance_id"] // "instance-0000000000"
 		fileName := fmt.Sprintf("%.12s_%s-%s", container.ID, kind, version+".log")
 
-		return filepath.Join(cfg.DiagName, kind, clusterID, instanceName, fileName)
+		return filepath.Join(t.cfg.DiagName, kind, clusterID, instanceName, fileName)
 		// 5a4f7f_elasticsearch-5.6.14_instance-0000000000_506b8c016045.log
 	}
 
@@ -219,18 +244,29 @@ func createFilePath(container types.Container) string {
 // 	}
 // 	return filename
 // }
-
-func writeJSON(path string, apiResp interface{}, tar *Tarball) error {
+func (t fileSystemStore) writeJSON(path string, apiResp interface{}) error {
 	json, err := json.MarshalIndent(apiResp, "", "  ")
 	if err != nil {
 		panic(err)
 	}
-	err = tar.AddData(path, json)
+	err = t.AddData(path, json)
 	if err != nil {
 		panic(err)
 	}
 	return err
 }
+
+// func writeJSON(path string, apiResp interface{}, tar *Tarball) error {
+// 	json, err := json.MarshalIndent(apiResp, "", "  ")
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	err = tar.AddData(path, json)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return err
+// }
 
 // Hack to allow calling writeJson directly
 func cmd(api interface{}, err error) interface{} {

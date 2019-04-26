@@ -1,4 +1,4 @@
-package ecediag
+package restAPI
 
 import (
 	"bytes"
@@ -20,13 +20,14 @@ import (
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/ece-support-diagnostics/helpers"
 	elasticsearch "github.com/elastic/go-elasticsearch"
 	"github.com/elastic/go-elasticsearch/esapi"
 )
 
 // Need to refactor into modules. Discovery should set username/password into a common.Config?
 
-func ScrollRunner(ece *ECEendpoint, tar *Tarball) {
+func (t testFileStore) ScrollRunner(ece *ECEendpoint) {
 	tp := CustomRoundTripper{
 		RoundTripper: &http.Transport{
 			MaxIdleConnsPerHost:   10,
@@ -67,7 +68,7 @@ func ScrollRunner(ece *ECEendpoint, tar *Tarball) {
 		log.Fatalf("Error creating the client: %s", err)
 	}
 	// fmt.Println(es.Cluster.Health())
-	doScroll(es, tar)
+	t.doScroll(es)
 
 }
 
@@ -109,7 +110,7 @@ type stat struct {
 	maxSize    int64
 }
 
-func doScroll(es *elasticsearch.Client, tar *Tarball) {
+func (t testFileStore) doScroll(es *elasticsearch.Client) {
 	log := logp.NewLogger("MetricScroll")
 
 	query := `{
@@ -201,7 +202,7 @@ func doScroll(es *elasticsearch.Client, tar *Tarball) {
 		es.ClearScroll.WithScrollID("scrollQuery.ScrollID"),
 	)
 
-	log.Infof("Total fetched from scroll: %d, Total Bytes: %s", s.count, ByteCountBinary(s.totalBytes))
+	log.Infof("Total fetched from scroll: %d, Total Bytes: %s", s.count, helpers.ByteCountBinary(s.totalBytes))
 
 	gzipWriter.Close()
 	file.Close()
@@ -209,8 +210,8 @@ func doScroll(es *elasticsearch.Client, tar *Tarball) {
 	fpath, _ := filepath.Abs(file.Name())
 	stat, _ := os.Stat(fpath)
 
-	tarRelPath := filepath.Join(cfg.DiagName, "metricbeatData.json.gz")
-	tar.AddFile(fpath, stat, tarRelPath)
+	tarRelPath := filepath.Join(t.cfg.DiagName, "metricbeatData.json.gz")
+	t.AddFile(fpath, stat, tarRelPath)
 
 	defer os.Remove(file.Name())
 }
@@ -255,67 +256,4 @@ func (r CustomRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 	// res, err := http.DefaultTransport.RoundTrip(req)
 	resp, err := r.RoundTripper.RoundTrip(req)
 	return resp, err
-}
-
-func ByteCountDecimal(b int64) string {
-	const unit = 1000
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-	div, exp := int64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
-}
-
-func ByteCountBinary(b int64) string {
-	const unit = 1024
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-	div, exp := int64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
-}
-
-type ECEendpoint struct {
-	eceAPI string
-	user   string
-	pass   string
-}
-
-type esClusters struct {
-	ElasticsearchClusters []esCluster `json:"elasticsearch_clusters"`
-}
-type esCluster struct {
-	ClusterName string `json:"cluster_name"`
-	ClusterID   string `json:"cluster_id"`
-}
-
-type esResp struct {
-	ScrollID string `json:"_scroll_id"`
-	Took     int    `json:"took"`
-	TimedOut bool   `json:"timed_out"`
-	Shards   struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Skipped    int `json:"skipped"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
-	Hits struct {
-		Total    int64   `json:"total"`
-		MaxScore float64 `json:"max_score"`
-		Hits     []struct {
-			Index  string          `json:"_index"`
-			Type   string          `json:"_type"`
-			ID     string          `json:"_id"`
-			Score  float64         `json:"_score"`
-			Source json.RawMessage `json:"_source"`
-		} `json:"hits"`
-	} `json:"hits"`
 }

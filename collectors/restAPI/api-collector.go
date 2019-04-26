@@ -1,4 +1,4 @@
-package ecediag
+package restAPI
 
 import (
 	"bufio"
@@ -19,60 +19,19 @@ import (
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/ece-support-diagnostics/config"
+	"github.com/elastic/ece-support-diagnostics/helpers"
+	"github.com/elastic/ece-support-diagnostics/store"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-// HTTPClient holds the client, endpoint and credentials
-type HTTPClient struct {
-	client   *http.Client
-	endpoint string
-	username string
-	passwd   string
-	writer   func(filepath string, b []byte) error
-}
-
-// RequestTask task
-type RequestTask struct {
-	config   *HTTPClient
-	restItem Rest
-}
-
-// RunRest starts the chain of functions to collect the Rest/HTTP calls
-func runRest(tar *Tarball) {
-	// var err error
-
-	httpClient := NewClient()
-	httpClient.writer = tar.AddData
-	httpClient.endpoint = "https://0.0.0.0:12443/"
-	err := httpClient.SetupCredentials()
-	panicError(err)
-
-	fmt.Println("[ ] Collecting ECE metricbeat data")
-	creds := &ECEendpoint{
-		eceAPI: httpClient.endpoint,
-		user:   httpClient.username,
-		pass:   httpClient.passwd,
-	}
-	ScrollRunner(creds, tar)
-	clearStdoutLine()
-	fmt.Println("[✔] Collected ECE metricbeat data")
-
-	fmt.Println("[ ] Collecting API information ECE and Elasticsearch")
-
-	var wg sync.WaitGroup
-	for _, item := range rest {
-		wg.Add(1)
-		task := RequestTask{config: httpClient, restItem: item}
-		go task.fetch(&wg)
-	}
-	wg.Wait()
-
-	clearStdoutLine()
-	fmt.Println("[✔] Collected API information ECE and Elasticsearch")
+func Run(t store.ContentStore, rest []Rest, config *config.Config) {
+	store := testFileStore{t, config}
+	store.runRest(rest)
 }
 
 // NewClient returns the configured http client to be used for http requests
-func NewClient() *HTTPClient {
+func newClient() *HTTPClient {
 	var tr = &http.Transport{
 		// Disable Certificate Checking
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
@@ -89,9 +48,41 @@ func NewClient() *HTTPClient {
 	return &HTTPClient{client: myClient}
 }
 
+// RunRest starts the chain of functions to collect the Rest/HTTP calls
+func (t testFileStore) runRest(rest []Rest) {
+	httpClient := newClient()
+	httpClient.writer = t.AddData
+	httpClient.endpoint = "https://0.0.0.0:12443/"
+	err := t.setupCredentials(httpClient)
+	helpers.PanicError(err)
+
+	fmt.Println("[ ] Collecting ECE metricbeat data")
+	creds := &ECEendpoint{
+		eceAPI: httpClient.endpoint,
+		user:   httpClient.username,
+		pass:   httpClient.passwd,
+	}
+	t.ScrollRunner(creds)
+	helpers.ClearStdoutLine()
+	fmt.Println("[✔] Collected ECE metricbeat data")
+
+	fmt.Println("[ ] Collecting API information ECE and Elasticsearch")
+
+	var wg sync.WaitGroup
+	for _, item := range rest {
+		wg.Add(1)
+		task := RequestTask{config: httpClient, restItem: item}
+		go t.fetch(&task, &wg)
+	}
+	wg.Wait()
+
+	helpers.ClearStdoutLine()
+	fmt.Println("[✔] Collected API information ECE and Elasticsearch")
+}
+
 // SetupCredentials checks that the auth credentials are valid
 //  successful auth creds are used for remaining requests
-func (r *HTTPClient) SetupCredentials() error {
+func (t testFileStore) setupCredentials(r *HTTPClient) error {
 	log := logp.NewLogger("ValidateAuth")
 
 	r.username, r.passwd = getCredentials()
@@ -105,7 +96,7 @@ func (r *HTTPClient) SetupCredentials() error {
 
 	req.SetBasicAuth(r.username, r.passwd)
 	resp, err := r.client.Do(req)
-	panicError(err)
+	helpers.PanicError(err)
 
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		defer resp.Body.Close()
@@ -114,7 +105,7 @@ func (r *HTTPClient) SetupCredentials() error {
 
 		if v0Response.Ok {
 			for i := 0; i <= 2; i++ {
-				clearStdoutLine()
+				helpers.ClearStdoutLine()
 			}
 			fmt.Printf("Authenticated\n")
 			fmt.Printf("\t✔ Username (%s)\n", r.username)
@@ -128,7 +119,7 @@ func (r *HTTPClient) SetupCredentials() error {
 }
 
 // fetch dispatches the Rest/HTTP request
-func (parent *RequestTask) fetch(wg *sync.WaitGroup) {
+func (t testFileStore) fetch(parent *RequestTask, wg *sync.WaitGroup) {
 
 	url := parent.config.endpoint + strings.TrimLeft(parent.restItem.URI, "/")
 	req, err := http.NewRequest("GET", url, nil)
@@ -148,20 +139,20 @@ func (parent *RequestTask) fetch(wg *sync.WaitGroup) {
 	// if resp.StatusCode >= 200 && resp.StatusCode <= 299 { }
 	respBody, err := ioutil.ReadAll(resp.Body)
 
-	archiveFile := filepath.Join(cfg.DiagName, parent.restItem.Filename)
+	archiveFile := filepath.Join(t.cfg.DiagName, parent.restItem.Filename)
 
 	// write response data to file
 	err = parent.config.writer(archiveFile, respBody)
-	panicError(err)
+	helpers.PanicError(err)
 
-	parent.checkSubItems(respBody)
+	t.checkSubItems(parent, respBody)
 
 	wg.Done()
 }
 
 // checkSubItems is used when `Sub` is defined in the Rest object, and contains a `Loop` item.
 //  It tries to unpack the parent JSON response into a map, and assert the proper type (array/object)
-func (parent *RequestTask) checkSubItems(respBody []byte) {
+func (t testFileStore) checkSubItems(parent *RequestTask, respBody []byte) {
 
 	if len(parent.restItem.Sub) > 0 {
 
@@ -175,19 +166,19 @@ func (parent *RequestTask) checkSubItems(respBody []byte) {
 		case []interface{}:
 			// TODO, this should only happen when loop is specified.
 			fmt.Println(json, "Array!")
-			parent.subLoop(json)
+			t.subLoop(parent, json)
 			// parent.iterateSub(resp)
 
 		// Json response for parent Rest response is a JSON Object
 		case map[string]interface{}:
 			if parent.restItem.Loop == "" {
 				// Iterate with top level map
-				parent.iterateSub(resp)
+				t.iterateSub(parent, resp)
 			} else {
 				if val, ok := json[parent.restItem.Loop]; ok {
 					switch data := val.(type) {
 					case []interface{}:
-						parent.subLoop(data)
+						t.subLoop(parent, data)
 					default:
 						// break, the key specified is not an array
 					}
@@ -202,13 +193,13 @@ func (parent *RequestTask) checkSubItems(respBody []byte) {
 	}
 }
 
-func (parent *RequestTask) subLoop(respArray []interface{}) {
+func (t testFileStore) subLoop(parent *RequestTask, respArray []interface{}) {
 	for _, Item := range respArray {
-		parent.iterateSub(Item)
+		t.iterateSub(parent, Item)
 	}
 }
 
-func (parent *RequestTask) iterateSub(It interface{}) {
+func (t testFileStore) iterateSub(parent *RequestTask, It interface{}) {
 	var wg sync.WaitGroup
 	l := logp.NewLogger("Elasticsearch")
 
@@ -220,7 +211,7 @@ func (parent *RequestTask) iterateSub(It interface{}) {
 		// render template
 		item.templateService(It)
 		task := RequestTask{config: parent.config, restItem: item}
-		go task.fetch(&wg)
+		go t.fetch(&task, &wg)
 	}
 	wg.Wait()
 }
@@ -246,7 +237,7 @@ func runTemplate(item string, Obj interface{}) string {
 func readJSON(in []byte) interface{} {
 	var data interface{}
 	err := json.Unmarshal(in, &data)
-	panicError(err)
+	helpers.PanicError(err)
 	return data
 }
 
@@ -260,7 +251,7 @@ func getCredentials() (usr, pass string) {
 	// fmt.Println("Username (read-only)")
 	fmt.Print("Enter Password: ")
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
-	panicError(err)
+	helpers.PanicError(err)
 	// if err == nil {fmt.Println("\nPassword typed: " + string(bytePassword))}
 	password := string(bytePassword)
 	return strings.TrimSpace(username), strings.TrimSpace(password)

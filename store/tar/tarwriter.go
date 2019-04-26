@@ -1,4 +1,4 @@
-package ecediag
+package tar
 
 import (
 	"archive/tar"
@@ -12,86 +12,95 @@ import (
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/ece-support-diagnostics/helpers"
 )
 
 // Tarball provides a wrapper for the tar/gz writers, and a mutex lock to call for thread safety
 type Tarball struct {
-	filepath string
-	t        *tar.Writer
-	g        *gzip.Writer
-	m        sync.Mutex
-}
-
-func createNewTar(filePath string) (*Tarball, error) {
-	tar := &Tarball{filepath: filePath}
-	err := tar.Create()
-	if err != nil {
-		// handle error
-	}
-	// defer tar.t.Close()
-	// defer tar.g.Close()
-	return tar, err
+	f    *os.File
+	tar  *tar.Writer
+	gzip *gzip.Writer
+	m    sync.Mutex
 }
 
 // Create starts a new tar/gz file to write data into
-func (tw *Tarball) Create() error {
-	file, err := os.Create(tw.filepath)
+func Create(filePath string) (*Tarball, error) {
+	return createNewTar(filePath)
+}
+
+func (t *Tarball) Filepath() string {
+	fp, _ := filepath.Abs(t.f.Name())
+	return fp
+}
+
+func (t *Tarball) Filename() string {
+	return t.f.Name()
+}
+
+func (t *Tarball) Close() {
+	t.tar.Close()
+	t.gzip.Close()
+	t.f.Close()
+}
+
+func createNewTar(tarballFilePath string) (*Tarball, error) {
+	t := new(Tarball)
+
+	file, err := os.Create(tarballFilePath)
 	if err != nil {
-		panic(err)
+		return t, fmt.Errorf("Could not create tarball file '%s', got error '%s'", tarballFilePath, err.Error())
 	}
-	// // set up the output file
-	// defer file.Close()
+	t.f = file
 
-	// tw.filepath = filePath
-
-	// set up the gzip writer
-	gw := gzip.NewWriter(file)
-	tw.g = gw
+	t.gzip = gzip.NewWriter(file)
+	// tw.g = gw
 	// defer gw.Close()
 
-	t := tar.NewWriter(gw)
-	tw.t = t
-	return err
+	t.tar = tar.NewWriter(t.gzip)
+
+	return t, nil
 }
 
 // Finalize adds the logfile to the tar, and closes the tar.
-func (tw *Tarball) Finalize(logfilePath string) {
+func (t *Tarball) Finalize(logfilePath, tarRelPath string) {
 
 	// TODO: This needs to be improved. I would like to just call AddFile.
 	//  need to make Addfile take a struct that has the stat,name,tar filepath,etc
 	l := logp.NewLogger("TarFile")
 	l.Infof("Adding log file: %s", logfilePath)
 
-	msgClosingTar := fmt.Sprintf(" the tar: %s", tw.filepath)
+	msgClosingTar := fmt.Sprintf(" the tar: %s", t.Filepath())
 	l.Infof("Finalizing %s", msgClosingTar)
 	fmt.Println("[ ] Finalizing" + msgClosingTar)
 
 	fileInfo, err := os.Stat(logfilePath)
-	panicError(err)
+	helpers.PanicError(err)
 
-	logTarPath := filepath.Join(cfg.DiagName, "diagnostic.log")
+	// logTarPath := filepath.Join(tarRelPath)
 
-	tw.m.Lock()
-	defer tw.m.Unlock()
+	t.AddFile(logfilePath, fileInfo, tarRelPath)
+	t.Close()
+	// tw.m.Lock()
+	// defer tw.m.Unlock()
 
-	header, err := tar.FileInfoHeader(fileInfo, fileInfo.Name())
-	panicError(err)
-	header.Name = logTarPath
+	// header, err := tar.FileInfoHeader(fileInfo, fileInfo.Name())
+	// panicError(err)
+	// header.Name = logTarPath
 
-	err = tw.t.WriteHeader(header)
-	panicError(err)
+	// err = tw.t.WriteHeader(header)
+	// panicError(err)
 
-	file, err := os.Open(logfilePath)
-	panicError(err)
-	defer file.Close()
+	// file, err := os.Open(logfilePath)
+	// panicError(err)
+	// defer file.Close()
 
-	_, err = io.Copy(tw.t, file)
-	panicError(err)
+	// _, err = io.Copy(tw.t, file)
+	// panicError(err)
 
-	tw.t.Close()
-	tw.g.Close()
+	// tw.t.Close()
+	// tw.g.Close()
 
-	clearStdoutLine()
+	helpers.ClearStdoutLine()
 	fmt.Println("[✔] Finished" + msgClosingTar)
 }
 
@@ -110,11 +119,11 @@ func (tw *Tarball) AddData(filePath string, b []byte) error {
 		Mode:    int64(0644),
 		ModTime: time.Now(),
 	}
-	err := tw.t.WriteHeader(header)
+	err := tw.tar.WriteHeader(header)
 	if err != nil {
 		return fmt.Errorf("Could not write header for file '%s', got error '%s'", filePath, err.Error())
 	}
-	tw.t.Write(b)
+	tw.tar.Write(b)
 	return err
 }
 
@@ -137,7 +146,7 @@ func (tw *Tarball) AddFile(filePath string, info os.FileInfo, relPath string) er
 	header.Name = relPath
 	// fmt.Println(header.Name)
 
-	err = tw.t.WriteHeader(header)
+	err = tw.tar.WriteHeader(header)
 	if err != nil {
 		return err
 	}
@@ -148,33 +157,6 @@ func (tw *Tarball) AddFile(filePath string, info os.FileInfo, relPath string) er
 	}
 
 	defer file.Close()
-	_, err = io.Copy(tw.t, file)
+	_, err = io.Copy(tw.tar, file)
 	return err
 }
-
-// https://medium.com/learning-the-go-programming-language/streaming-io-in-go-d93507931185
-// type chanWriter struct {
-// 	ch chan byte
-// }
-//
-// func newChanWriter() *chanWriter {
-// 	return &chanWriter{make(chan byte, 1024)}
-// }
-//
-// func (w *chanWriter) Chan() <-chan byte {
-// 	return w.ch
-// }
-//
-// func (w *chanWriter) Write(p []byte) (int, error) {
-// 	n := 0
-// 	for _, b := range p {
-// 		w.ch <- b
-// 		n++
-// 	}
-// 	return n, nil
-// }
-//
-// func (w *chanWriter) Close() error {
-// 	close(w.ch)
-// 	return nil
-// }
