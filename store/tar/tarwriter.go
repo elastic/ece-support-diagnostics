@@ -51,11 +51,7 @@ func createNewTar(tarballFilePath string) (*Tarball, error) {
 		return t, fmt.Errorf("Could not create tarball file '%s', got error '%s'", tarballFilePath, err.Error())
 	}
 	t.f = file
-
 	t.gzip = gzip.NewWriter(file)
-	// tw.g = gw
-	// defer gw.Close()
-
 	t.tar = tar.NewWriter(t.gzip)
 
 	return t, nil
@@ -63,9 +59,6 @@ func createNewTar(tarballFilePath string) (*Tarball, error) {
 
 // Finalize adds the logfile to the tar, and closes the tar.
 func (t *Tarball) Finalize(logfilePath, tarRelPath string) {
-
-	// TODO: This needs to be improved. I would like to just call AddFile.
-	//  need to make Addfile take a struct that has the stat,name,tar filepath,etc
 	l := logp.NewLogger("TarFile")
 	l.Infof("Adding log file: %s", logfilePath)
 
@@ -76,29 +69,8 @@ func (t *Tarball) Finalize(logfilePath, tarRelPath string) {
 	fileInfo, err := os.Stat(logfilePath)
 	helpers.PanicError(err)
 
-	// logTarPath := filepath.Join(tarRelPath)
-
 	t.AddFile(logfilePath, fileInfo, tarRelPath)
 	t.Close()
-	// tw.m.Lock()
-	// defer tw.m.Unlock()
-
-	// header, err := tar.FileInfoHeader(fileInfo, fileInfo.Name())
-	// panicError(err)
-	// header.Name = logTarPath
-
-	// err = tw.t.WriteHeader(header)
-	// panicError(err)
-
-	// file, err := os.Open(logfilePath)
-	// panicError(err)
-	// defer file.Close()
-
-	// _, err = io.Copy(tw.t, file)
-	// panicError(err)
-
-	// tw.t.Close()
-	// tw.g.Close()
 
 	helpers.ClearStdoutLine()
 	fmt.Println("[✔] Finished" + msgClosingTar)

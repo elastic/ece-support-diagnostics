@@ -6,17 +6,6 @@ import (
 	"github.com/elastic/ece-support-diagnostics/collectors/restAPI"
 )
 
-// this is a helper function to avoid long repetitive paths for a large number of Rest calls
-func eceProxy(uri string) string {
-	eceBase := "/api/v1/clusters/elasticsearch/{{ .cluster_id }}/proxy/"
-	return eceBase + strings.TrimLeft(uri, "/")
-}
-
-func eceHeader() map[string]string {
-	header := map[string]string{"X-Management-Request": "true"}
-	return header
-}
-
 // If `Sub` is present, the JSON response will be unpacked to a map and provided
 //  to the sub items for templating. `Loop` will specify the path to an array
 //  to iterate on. `Loop` will be looped for the `Sub` items.
@@ -257,4 +246,15 @@ var rest = []restAPI.Rest{
 			},
 		},
 	},
+}
+
+// this is a helper function to avoid long repetitive paths for a large number of Rest calls
+func eceProxy(uri string) string {
+	eceBase := "/api/v1/clusters/elasticsearch/{{ .cluster_id }}/proxy/"
+	return eceBase + strings.TrimLeft(uri, "/")
+}
+
+func eceHeader() map[string]string {
+	header := map[string]string{"X-Management-Request": "true"}
+	return header
 }

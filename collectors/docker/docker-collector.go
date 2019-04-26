@@ -217,6 +217,30 @@ func (t fileSystemStore) createFilePath(container types.Container) string {
 
 }
 
+func (t fileSystemStore) writeJSON(path string, apiResp interface{}) error {
+	json, err := json.MarshalIndent(apiResp, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	err = t.AddData(path, json)
+	if err != nil {
+		panic(err)
+	}
+	return err
+}
+
+// func writeJSON(path string, apiResp interface{}, tar *Tarball) error {
+// 	json, err := json.MarshalIndent(apiResp, "", "  ")
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	err = tar.AddData(path, json)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return err
+// }
+
 // func safeFilename(names ...string) string {
 // 	// TODO: Make sure this is actually file system safe
 // 	// This should be reworked into something that validates the full fs path.
@@ -244,31 +268,8 @@ func (t fileSystemStore) createFilePath(container types.Container) string {
 // 	}
 // 	return filename
 // }
-func (t fileSystemStore) writeJSON(path string, apiResp interface{}) error {
-	json, err := json.MarshalIndent(apiResp, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	err = t.AddData(path, json)
-	if err != nil {
-		panic(err)
-	}
-	return err
-}
 
-// func writeJSON(path string, apiResp interface{}, tar *Tarball) error {
-// 	json, err := json.MarshalIndent(apiResp, "", "  ")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	err = tar.AddData(path, json)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return err
+// // Hack to allow calling writeJson directly
+// func cmd(api interface{}, err error) interface{} {
+// 	return api
 // }
-
-// Hack to allow calling writeJson directly
-func cmd(api interface{}, err error) interface{} {
-	return api
-}

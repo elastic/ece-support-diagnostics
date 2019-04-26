@@ -2,11 +2,9 @@ package restAPI
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"net"
@@ -214,23 +212,6 @@ func (t testFileStore) iterateSub(parent *RequestTask, It interface{}) {
 		go t.fetch(&task, &wg)
 	}
 	wg.Wait()
-}
-
-// templateService controls the fields to be templated
-func (R *Rest) templateService(Obj interface{}) {
-	R.Filename = runTemplate(R.Filename, Obj)
-	R.URI = runTemplate(R.URI, Obj)
-}
-
-// runTemplate performs the string substitution using the html/template package
-func runTemplate(item string, Obj interface{}) string {
-	t := template.Must(template.New("testing").Parse(item))
-	var tpl bytes.Buffer
-	err := t.Execute(&tpl, Obj)
-	if err != nil {
-		log.Println("executing template:", Obj)
-	}
-	return tpl.String()
 }
 
 // readJSON unpacks the Rest/HTTP request into a generic interface
