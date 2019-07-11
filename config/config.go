@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
-	"github.com/elastic/ece-support-diagnostics/checker"
+	"github.com/elastic/ece-support-diagnostics/discovery"
 )
 
 // Config holds configuration variables
@@ -34,7 +34,7 @@ func New() *Config {
 // Initalize makes sure runtime variables are all set
 func (c *Config) Initalize() {
 	cfg.OlderThan = 72 * time.Hour
-	RunnerName, err := checker.CheckStoragePath(c.ElasticFolder)
+	RunnerName, err := discovery.CheckStoragePath(c.ElasticFolder)
 	if err != nil {
 		panic(err)
 	}

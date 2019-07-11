@@ -9,7 +9,9 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -18,6 +20,7 @@ import (
 
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/ece-support-diagnostics/config"
+	"github.com/elastic/ece-support-diagnostics/discovery"
 	"github.com/elastic/ece-support-diagnostics/helpers"
 	"github.com/elastic/ece-support-diagnostics/store"
 	"golang.org/x/crypto/ssh/terminal"
@@ -50,8 +53,15 @@ func newClient() *HTTPClient {
 func (t testFileStore) runRest(rest []Rest) {
 	httpClient := newClient()
 	httpClient.writer = t.AddData
-	httpClient.endpoint = "https://0.0.0.0:12443/"
-	err := t.setupCredentials(httpClient)
+	// httpClient.endpoint = "https://0.0.0.0:12443/"
+	endpoint, err := discovery.DiscoverAPI(t.cfg.ElasticFolder, httpClient.client)
+	if err != nil {
+		fmt.Println("Failed to discover ECE API to collect data from")
+		return
+	}
+	httpClient.endpoint = endpoint
+
+	err = t.setupCredentials(httpClient)
 	helpers.PanicError(err)
 
 	fmt.Println("[ ] Collecting ECE metricbeat data")
@@ -85,7 +95,7 @@ func (t testFileStore) setupCredentials(r *HTTPClient) error {
 
 	r.username, r.passwd = getCredentials()
 
-	req, err := http.NewRequest("GET", r.endpoint+"api/v0", nil)
+	req, err := http.NewRequest("GET", r.endpoint+"/api/v0", nil)
 	if err != nil {
 		// handle err
 	}
@@ -119,8 +129,11 @@ func (t testFileStore) setupCredentials(r *HTTPClient) error {
 // fetch dispatches the Rest/HTTP request
 func (t testFileStore) fetch(parent *RequestTask, wg *sync.WaitGroup) {
 
-	url := parent.config.endpoint + strings.TrimLeft(parent.restItem.URI, "/")
-	req, err := http.NewRequest("GET", url, nil)
+	url, err := url.Parse(parent.config.endpoint)
+	url.Path = path.Join(url.Path, parent.restItem.URI)
+	// url := parent.config.endpoint + strings.TrimLeft(parent.restItem.URI, "/")
+
+	req, err := http.NewRequest("GET", url.String(), nil)
 	// TODO: handle err?
 
 	// set auth

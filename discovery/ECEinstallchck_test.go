@@ -1,4 +1,4 @@
-package checker
+package discovery
 
 import "testing"
 
