@@ -2,12 +2,10 @@ package restAPI
 
 import (
 	"bufio"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/ece-support-diagnostics/config"
@@ -32,27 +29,18 @@ func Run(t store.ContentStore, rest []Rest, config *config.Config) {
 }
 
 // NewClient returns the configured http client to be used for http requests
+//  TODO: look into consolidating to single transport/http client.
 func newClient() *HTTPClient {
-	var tr = &http.Transport{
-		// Disable Certificate Checking
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-		ResponseHeaderTimeout: 15 * time.Second,
-		// Connection timeout = 5s
-		Dial: (&net.Dialer{
-			Timeout: 5 * time.Second,
-		}).Dial,
-		// TLS Handshake Timeout = 5s
-		TLSHandshakeTimeout: 5 * time.Second,
-	}
-	// HTTP Timeout = 10s
-	myClient := &http.Client{Timeout: 10 * time.Second, Transport: tr}
-	return &HTTPClient{client: myClient}
+	return &HTTPClient{client: config.NewHttpClient()}
 }
 
 // RunRest starts the chain of functions to collect the Rest/HTTP calls
 func (t testFileStore) runRest(rest []Rest) {
 	httpClient := newClient()
 	httpClient.writer = t.AddData
+
+	// TODO: create a safe method to return the endpoint + URI.
+	//  when switching to the discovery, the lack of the trailing slash caused some issues
 	// httpClient.endpoint = "https://0.0.0.0:12443/"
 	endpoint, err := discovery.DiscoverAPI(t.cfg.ElasticFolder, httpClient.client)
 	if err != nil {
@@ -95,34 +83,38 @@ func (t testFileStore) setupCredentials(r *HTTPClient) error {
 
 	r.username, r.passwd = getCredentials()
 
-	req, err := http.NewRequest("GET", r.endpoint+"/api/v0", nil)
+	url, _ := url.Parse(r.endpoint)
+	// TODO: check that this API endpoint will work on 1.x versions?
+	url.Path = path.Join(url.Path, "/api/v1/platform/license")
+
+	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
-		// handle err
+		// handle err?
+		// need to understand if there is any risk of an error in creating the http request?
 	}
 
 	fmt.Println()
 
 	req.SetBasicAuth(r.username, r.passwd)
 	resp, err := r.client.Do(req)
+
+	// auth failed? retry?
 	helpers.PanicError(err)
 
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-		defer resp.Body.Close()
-		v0Response := new(v0APIresponse)
-		json.NewDecoder(resp.Body).Decode(v0Response)
-
-		if v0Response.Ok {
-			for i := 0; i <= 2; i++ {
-				helpers.ClearStdoutLine()
-			}
-			fmt.Printf("Authenticated\n")
-			fmt.Printf("\t✔ Username (%s)\n", r.username)
-			fmt.Printf("\t✔ Password\n")
-
-			log.Infof("Cloud UI Resolved, using %s", req.URL)
-			return nil
+	if resp.StatusCode == 200 || resp.StatusCode == 400 {
+		for i := 0; i <= 2; i++ {
+			helpers.ClearStdoutLine()
 		}
+		fmt.Printf("Authenticated\n")
+		fmt.Printf("\t✔ Username (%s)\n", r.username)
+		fmt.Printf("\t✔ Password\n")
+
+		log.Infof("Cloud UI Resolved, using %s", req.URL)
+		return nil
 	}
+
+	// TODO: write license response to file?
+
 	return fmt.Errorf("Authentication failed")
 }
 

@@ -23,6 +23,7 @@ import (
 	"github.com/elastic/ece-support-diagnostics/helpers"
 	elasticsearch "github.com/elastic/go-elasticsearch"
 	"github.com/elastic/go-elasticsearch/esapi"
+	"github.com/tidwall/gjson"
 )
 
 // Need to refactor into modules. Discovery should set username/password into a common.Config?
@@ -53,7 +54,7 @@ func (t testFileStore) ScrollRunner(ece *ECEendpoint) {
 	if err != nil {
 		panic(err)
 	}
-	u.Path = path.Join(u.Path, "/api/v1/clusters/elasticsearch/", metricCluster.ClusterID, "/proxy")
+	u.Path = path.Join(u.Path, "/api/v1/clusters/elasticsearch/", metricCluster, "/proxy")
 
 	cfg := elasticsearch.Config{
 		Addresses: []string{u.String()},
@@ -72,13 +73,12 @@ func (t testFileStore) ScrollRunner(ece *ECEendpoint) {
 
 }
 
-func (ece ECEendpoint) discoverMetricsCluster(tp *CustomRoundTripper) (esCluster, error) {
+func (ece ECEendpoint) discoverMetricsCluster(tp *CustomRoundTripper) (string, error) {
 	client := &http.Client{Transport: tp}
-	u, err := url.Parse(ece.eceAPI)
-	if err != nil {
-		panic(err)
-	}
+
+	u, _ := url.Parse(ece.eceAPI)
 	u.Path = path.Join(u.Path, "/api/v1/clusters/elasticsearch")
+
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		// handle err
@@ -93,15 +93,15 @@ func (ece ECEendpoint) discoverMetricsCluster(tp *CustomRoundTripper) (esCluster
 	}
 	defer resp.Body.Close()
 
-	c := new(esClusters)
-	json.NewDecoder(resp.Body).Decode(&c)
+	// TODO: check for error?
+	respBytes, _ := ioutil.ReadAll(resp.Body)
 
-	for _, cluster := range c.ElasticsearchClusters {
-		if cluster.ClusterName == "logging-and-metrics" {
-			return cluster, nil
-		}
+	// select the logging-and-metrics cluster
+	clusterID := gjson.GetBytes(respBytes, `elasticsearch_clusters.#(cluster_name="logging-and-metrics").cluster_id`)
+	if !clusterID.Exists() {
+		return "", fmt.Errorf("Could not find logging-and-metrics cluster ID")
 	}
-	return esCluster{}, fmt.Errorf("logging-and-metrics not found")
+	return clusterID.String(), nil
 }
 
 type stat struct {

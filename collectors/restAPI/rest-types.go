@@ -38,30 +38,10 @@ type RequestTask struct {
 	restItem Rest
 }
 
-type v0APIresponse struct {
-	Ok           bool   `json:"ok"`
-	Message      string `json:"message"`
-	EulaAccepted bool   `json:"eula_accepted"`
-	Hrefs        struct {
-		Regions       string `json:"regions"`
-		Elasticsearch string `json:"elasticsearch"`
-		Logs          string `json:"logs"`
-		DatabaseUsers string `json:"database/users"`
-	} `json:"hrefs"`
-}
-
 type ECEendpoint struct {
 	eceAPI string
 	user   string
 	pass   string
-}
-
-type esClusters struct {
-	ElasticsearchClusters []esCluster `json:"elasticsearch_clusters"`
-}
-type esCluster struct {
-	ClusterName string `json:"cluster_name"`
-	ClusterID   string `json:"cluster_id"`
 }
 
 type esResp struct {
