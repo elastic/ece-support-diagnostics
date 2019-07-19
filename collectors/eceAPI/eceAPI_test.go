@@ -1,4 +1,4 @@
-package restAPI
+package eceAPI
 
 import (
 	"fmt"

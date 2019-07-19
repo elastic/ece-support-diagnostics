@@ -47,14 +47,16 @@ func (t fileSystemStore) runDockerCmds() {
 		panic(err)
 	}
 	// cli.NegotiateAPIVersion(context.Background())
-	l.Infof("Docker API Version: %s", cli.ClientVersion())
-	// fmt.Println(cli.ClientVersion())
+	l.Infof("Using Docker API Version: %s", cli.ClientVersion())
 
 	ctx := context.Background()
 	Containers, err := cli.ContainerList(ctx, types.ContainerListOptions{})
-	// fmt.Printf("%+v\n", Containers)
+	if err != nil {
+		// Should cancel here if can't reach docker API.
+		panic(err)
+	}
 
-	fp := func(path string) string { return filepath.Join(t.cfg.DiagName, "server_info", path) }
+	fp := func(path string) string { return filepath.Join(t.cfg.DiagnosticFilename(), "server_info", path) }
 
 	t.writeJSON(fp("DockerContainers.json"), Containers)
 	// writeJSON(fp("DockerContainers.json"), cmd(Containers, err), tar)
@@ -178,7 +180,7 @@ func (t fileSystemStore) createFilePath(container types.Container) string {
 	labels := container.Labels
 
 	eceLogPath := func(kind, filename string) string {
-		return filepath.Join(t.cfg.DiagName, "ece", kind, filename)
+		return filepath.Join(t.cfg.DiagnosticFilename(), "ece", kind, filename)
 	}
 	// if a runner launches the container then it has `runner.container_name`
 	if containerName, ok := labels["co.elastic.cloud.runner.container_name"]; ok {
@@ -197,7 +199,7 @@ func (t fileSystemStore) createFilePath(container types.Container) string {
 		instanceName := labels["co.elastic.cloud.allocator.instance_id"] // "instance-0000000000"
 		fileName := fmt.Sprintf("%.12s_%s-%s", container.ID, kind, version+".log")
 
-		return filepath.Join(t.cfg.DiagName, kind, clusterID, instanceName, fileName)
+		return filepath.Join(t.cfg.DiagnosticFilename(), kind, clusterID, instanceName, fileName)
 		// 5a4f7f_elasticsearch-5.6.14_instance-0000000000_506b8c016045.log
 	}
 

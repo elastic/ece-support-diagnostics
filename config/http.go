@@ -7,7 +7,8 @@ import (
 	"time"
 )
 
-func NewHttpClient() *http.Client {
+// NewHTTPClient returns a http.Client with sane timeouts configured
+func NewHTTPClient() *http.Client {
 	var tr = &http.Transport{
 		// Disable Certificate Checking
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},

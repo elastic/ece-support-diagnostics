@@ -22,9 +22,10 @@ func DiscoverAPI(installFolder string, r *http.Client) (string, error) {
 
 	matches, err := filepath.Glob(globFolder)
 	if err != nil {
-		// Couldn't find the client-forwarder ensemble-state-file.json
 		panic(err)
-	} else {
+	}
+
+	if len(matches) > 0 {
 		// TODO: there never should be more than one match, handle error if more than 1?
 		ensembleFile := matches[0]
 		ensemble, _ := ioutil.ReadFile(ensembleFile)
@@ -42,10 +43,12 @@ func DiscoverAPI(installFolder string, r *http.Client) (string, error) {
 
 			// DEBUG: println(publicHostname)
 
+			println("Checking connection:", publicHostname)
 			// Check if :12443/api/v1 can be reached
 			endpoint, err = checkEndpoint(r, publicHostname)
 			if err != nil {
 				// endpoint did not work
+				println(err.Error())
 				return true // keep iterating
 			}
 
@@ -58,9 +61,12 @@ func DiscoverAPI(installFolder string, r *http.Client) (string, error) {
 			fmt.Println(endpoint)
 			return endpoint, nil
 		}
-		fmt.Println(err)
+		// fmt.Println(err)
 		return "", err
 	}
+
+	// Couldn't find the client-forwarder ensemble-state-file.json
+	return "", fmt.Errorf("Couldn't find the client-forwarder ensemble-state-file.json")
 }
 
 func checkEndpoint(r *http.Client, host string) (string, error) {
@@ -68,7 +74,7 @@ func checkEndpoint(r *http.Client, host string) (string, error) {
 	u, _ := url.Parse(endpoint)
 	u.Path = path.Join(u.Path, "api/v1")
 
-	fmt.Println(u.String())
+	// fmt.Println(u.String())
 	req, _ := http.NewRequest("GET", u.String(), nil)
 
 	resp, err := r.Do(req)

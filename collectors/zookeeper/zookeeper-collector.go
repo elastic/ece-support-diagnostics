@@ -61,7 +61,7 @@ func (t fileSystemStore) zookeeperMNTR(container types.Container) {
 		log.Fatalf("It didn't work:\n%s\n%s", err, out)
 	}
 
-	fpath := filepath.Join(t.cfg.DiagName, "ece", "zookeeper_mntr.txt")
+	fpath := filepath.Join(t.cfg.DiagnosticFilename(), "ece", "zookeeper_mntr.txt")
 	t.AddData(fpath, out)
 	// fmt.Println(test, err)
 }

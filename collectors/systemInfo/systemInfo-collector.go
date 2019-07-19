@@ -45,8 +45,7 @@ func (t fileSystemStore) runSystemCmds(sCmd []SystemCmd, sFiles []SystemFile) {
 	}
 	wg.Wait()
 
-	// fpath := filepath.Join(cfg.DiagName, "server_info", c.Filename)
-	fp := func(path string) string { return filepath.Join(t.cfg.DiagName, "server_info", path) }
+	fp := func(path string) string { return filepath.Join(t.cfg.DiagnosticFilename(), "server_info", path) }
 
 	sysInfo := sysinfo.Go()
 	t.writeJSON(fp("GoSysInfo.txt"), sysInfo)
@@ -113,7 +112,7 @@ func (t fileSystemStore) processFile(c SystemFile, wg *sync.WaitGroup) {
 	if err != nil {
 		l.Error(err)
 	} else {
-		fp := func(path string) string { return filepath.Join(t.cfg.DiagName, "server_info", path) }
+		fp := func(path string) string { return filepath.Join(t.cfg.DiagnosticFilename(), "server_info", path) }
 
 		var buf []byte
 		numFiles := len(files)
@@ -143,7 +142,7 @@ func (t fileSystemStore) processCmd(c SystemCmd, wg *sync.WaitGroup) {
 	if err != nil {
 		l.Error(err)
 	} else {
-		fpath := filepath.Join(t.cfg.DiagName, "server_info", c.Filename)
+		fpath := filepath.Join(t.cfg.DiagnosticFilename(), "server_info", c.Filename)
 		t.AddData(fpath, out)
 		l.Infof("Command completed: \"%v\" -> %s", c.RawCmd, c.Filename)
 	}

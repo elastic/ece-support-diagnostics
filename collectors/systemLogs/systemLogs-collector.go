@@ -80,7 +80,7 @@ func (t fileSystemStore) addToTar(files Files) {
 				continue
 			}
 			if t.dateFilter(file, t.cfg.OlderThan) {
-				tarRelPath := filepath.Join(t.cfg.DiagName, match[2])
+				tarRelPath := filepath.Join(t.cfg.DiagnosticFilename(), match[2])
 				t.AddFile(file.filepath, file.info, tarRelPath)
 				l.Infof("Adding log file: %s", match[2])
 			}
@@ -94,7 +94,7 @@ func (t fileSystemStore) addToTar(files Files) {
 					continue
 				}
 				if t.dateFilter(file, t.cfg.OlderThan) {
-					tarRelPath := filepath.Join(t.cfg.DiagName, "ece", match[2])
+					tarRelPath := filepath.Join(t.cfg.DiagnosticFilename(), "ece", match[2])
 					t.AddFile(file.filepath, file.info, tarRelPath)
 					l.Infof("Adding log file: %s", match[2])
 				}
@@ -106,7 +106,7 @@ func (t fileSystemStore) addToTar(files Files) {
 				if t.dateFilter(file, t.cfg.OlderThan) {
 					// This should be a catch all. This shouldn't happen.
 					l.Warnf("THIS SHOULD NOT HAPPEN, %s", file.filepath)
-					tarRelPath := filepath.Join(t.cfg.DiagName, "ece", filepath.Base(file.filepath))
+					tarRelPath := filepath.Join(t.cfg.DiagnosticFilename(), "ece", filepath.Base(file.filepath))
 					t.AddFile(file.filepath, file.info, tarRelPath)
 					l.Infof("Adding log file: %s", filepath.Base(file.filepath))
 				}

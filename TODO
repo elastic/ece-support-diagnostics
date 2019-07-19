@@ -1,1 +1,3 @@
+Cancel docker collection properly when docker can't be reached
+
 Add interface stats from netstat or ss

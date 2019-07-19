@@ -113,7 +113,7 @@ func (tw *Tarball) AddFile(filePath string, info os.FileInfo, relPath string) er
 	}
 
 	// archiveFile := strings.TrimLeft(strings.TrimPrefix(filePath, strings.TrimRight(basePath, "/")), "/")
-	// archiveFilePath := filepath.Join(cfg.DiagName, archiveFile)
+	// archiveFilePath := filepath.Join(cfg.DiagnosticFilename(), archiveFile)
 	// header.Name = archiveFilePath
 	header.Name = relPath
 	// fmt.Println(header.Name)

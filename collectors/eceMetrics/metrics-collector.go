@@ -1,16 +1,14 @@
-package restAPI
+package eceMetrics
 
 import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,70 +18,75 @@ import (
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/ece-support-diagnostics/config"
 	"github.com/elastic/ece-support-diagnostics/helpers"
 	elasticsearch "github.com/elastic/go-elasticsearch"
 	"github.com/elastic/go-elasticsearch/esapi"
 	"github.com/tidwall/gjson"
 )
 
-// Need to refactor into modules. Discovery should set username/password into a common.Config?
+type metricsCollector struct {
+	tp CustomRoundTripper
+}
 
-func (t testFileStore) ScrollRunner(ece *ECEendpoint) {
-	tp := CustomRoundTripper{
-		RoundTripper: &http.Transport{
-			MaxIdleConnsPerHost:   10,
-			ResponseHeaderTimeout: 10 * time.Second,
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-				// MinVersion:         tls.VersionTLS12,
-			},
-			// Connection timeout = 5s
-			Dial: (&net.Dialer{
-				Timeout: 5 * time.Second,
-			}).Dial,
-			// TLS Handshake Timeout = 5s
-			TLSHandshakeTimeout: 5 * time.Second,
+type CustomRoundTripper struct {
+	http.RoundTripper
+}
+
+func Run(cfg *config.Config) {
+	fmt.Println("[ ] Collecting ECE metricbeat data")
+
+	metrics := metricsCollector{
+		tp: CustomRoundTripper{
+			RoundTripper: cfg.HTTPclient.Transport,
 		},
 	}
 
-	metricCluster, err := ece.discoverMetricsCluster(&tp)
+	metrics.ScrollRunner(cfg)
+
+	helpers.ClearStdoutLine()
+	fmt.Println("[✔] Collected ECE metricbeat data")
+}
+
+func (m metricsCollector) ScrollRunner(cfg *config.Config) {
+	metricCluster, err := m.discoverMetricsCluster(cfg)
 	if err != nil {
 		panic(err)
 	}
-	u, err := url.Parse(ece.eceAPI)
+	u, err := url.Parse(cfg.APIendpoint)
 	if err != nil {
 		panic(err)
 	}
 	u.Path = path.Join(u.Path, "/api/v1/clusters/elasticsearch/", metricCluster, "/proxy")
 
-	cfg := elasticsearch.Config{
+	esConf := elasticsearch.Config{
 		Addresses: []string{u.String()},
-		Username:  ece.user,
-		Password:  ece.pass,
-		Transport: &tp,
+		Username:  cfg.Auth.User,
+		Password:  cfg.Auth.Pass,
+		Transport: &m.tp,
 	}
 
 	// Create the Elasticsearch client
-	es, err := elasticsearch.NewClient(cfg)
+	es, err := elasticsearch.NewClient(esConf)
 	if err != nil {
 		log.Fatalf("Error creating the client: %s", err)
 	}
 	// fmt.Println(es.Cluster.Health())
-	t.doScroll(es)
+	m.doScroll(es, cfg)
 
 }
 
-func (ece ECEendpoint) discoverMetricsCluster(tp *CustomRoundTripper) (string, error) {
-	client := &http.Client{Transport: tp}
+func (m metricsCollector) discoverMetricsCluster(cfg *config.Config) (string, error) {
+	client := &http.Client{Transport: &m.tp}
 
-	u, _ := url.Parse(ece.eceAPI)
+	u, _ := url.Parse(cfg.APIendpoint)
 	u.Path = path.Join(u.Path, "/api/v1/clusters/elasticsearch")
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		// handle err
 	}
-	req.SetBasicAuth(ece.user, ece.pass)
+	req.SetBasicAuth(cfg.Auth.User, cfg.Auth.Pass)
 
 	// fmt.Printf("%+v\n", req)
 
@@ -97,7 +100,7 @@ func (ece ECEendpoint) discoverMetricsCluster(tp *CustomRoundTripper) (string, e
 	respBytes, _ := ioutil.ReadAll(resp.Body)
 
 	// select the logging-and-metrics cluster
-	clusterID := gjson.GetBytes(respBytes, `elasticsearch_clusters.#(cluster_name="logging-and-metrics").cluster_id`)
+	clusterID := gjson.GetBytes(respBytes, `elasticsearch_clusters.#(cluster_name=="logging-and-metrics").cluster_id`)
 	if !clusterID.Exists() {
 		return "", fmt.Errorf("Could not find logging-and-metrics cluster ID")
 	}
@@ -110,7 +113,7 @@ type stat struct {
 	maxSize    int64
 }
 
-func (t testFileStore) doScroll(es *elasticsearch.Client) {
+func (m metricsCollector) doScroll(es *elasticsearch.Client, cfg *config.Config) {
 	log := logp.NewLogger("MetricScroll")
 
 	query := `{
@@ -210,8 +213,8 @@ func (t testFileStore) doScroll(es *elasticsearch.Client) {
 	fpath, _ := filepath.Abs(file.Name())
 	stat, _ := os.Stat(fpath)
 
-	tarRelPath := filepath.Join(t.cfg.DiagName, "metricbeatData.json.gz")
-	t.AddFile(fpath, stat, tarRelPath)
+	tarRelPath := filepath.Join(cfg.DiagnosticFilename(), "metricbeatData.json.gz")
+	cfg.Store.AddFile(fpath, stat, tarRelPath)
 
 	defer os.Remove(file.Name())
 }
@@ -240,10 +243,6 @@ func (r *esResp) writeToFile(w io.Writer, s *stat) error {
 
 	w.Write(buf.Bytes())
 	return nil
-}
-
-type CustomRoundTripper struct {
-	http.RoundTripper
 }
 
 // RoundTrip executes a request and returns a response.
