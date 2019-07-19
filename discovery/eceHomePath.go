@@ -45,7 +45,7 @@ func CheckStoragePath(eceInstallPath string) (string, error) {
 				ContainerSets = append(ContainerSets, ContainerSet.Name())
 			}
 		}
-		fmt.Printf("Discovered: %v\n", ContainerSets)
+		// fmt.Printf("Discovered: %v\n", ContainerSets)
 		return runnerName, nil
 	}
 	return "", fmt.Errorf("could not find a valid ECE install location")
