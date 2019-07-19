@@ -48,11 +48,11 @@ var rootCmd = &cobra.Command{
 
 		cfg.Store = tar
 
-		docker.Run(tar, cfg)
+		docker.Run(cfg)
 		eceAPI.Run(eceAPI.NewRestCalls(), cfg)
 		eceMetrics.Run(cfg)
-		systemInfo.Run(tar, systemInfo.NewSystemCmdTasks(), systemInfo.NewSystemFileTasks(), cfg)
-		systemLogs.Run(tar, cfg)
+		systemInfo.Run(systemInfo.NewSystemCmdTasks(), systemInfo.NewSystemFileTasks(), cfg)
+		systemLogs.Run(cfg)
 
 		logTarPath := filepath.Join(cfg.DiagnosticFilename(), "diagnostic.log")
 		tar.Finalize(cfg.DiagnosticLogFilePath(), logTarPath)

@@ -9,13 +9,12 @@ import (
 
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/ece-support-diagnostics/config"
-	"github.com/elastic/ece-support-diagnostics/store"
 )
 
-type fileSystemStore struct {
-	store.ContentStore
-	cfg *config.Config
-}
+type fileCollector struct{}
+
+// Files is an array of the File type, used for holding all the collected logs and files
+type Files []File
 
 // File holds file information for a collected log or file
 type File struct {
@@ -23,31 +22,22 @@ type File struct {
 	filepath string
 }
 
-// Files is an array of the File type, used for holding all the collected logs and files
-type Files []File
-
-// Run runs
-func Run(t store.ContentStore, config *config.Config) {
-	store := fileSystemStore{t, config}
-	store.runCollectLogs()
-}
-
-// CollectLogs will walk the ElasticFolder path looking for the specific patterns.
-//  TODO: needs to be cleaned up and variables should be passed in.
-func (t fileSystemStore) runCollectLogs() {
+// Run starts file collection by walking the ElasticFolder path looking for the specified patterns.
+func Run(cfg *config.Config) {
 	log := logp.NewLogger("collect-logs")
 	log.Infof("Collecting ECE log files")
+	fc := fileCollector{}
 	// TODO: break into concatenated pattern, so the code can be commented.
 	elasticLogsPattern := regexp.MustCompile(`\/logs\/|ensemble-state-file.json$|stunnel.conf$|replicated.cfg.dynamic$`)
 
 	files := Files{}
 
-	t.findPattern(&files, t.cfg.ElasticFolder, elasticLogsPattern)
+	fc.findPattern(&files, cfg.ElasticFolder, elasticLogsPattern)
 	// fmt.Printf("%+v\n", files)
-	t.addToTar(files)
+	fc.addToTar(files, cfg)
 }
 
-func (t fileSystemStore) findPattern(files *Files, path string, re *regexp.Regexp) {
+func (fc fileCollector) findPattern(files *Files, path string, re *regexp.Regexp) {
 	err := filepath.Walk(path,
 		func(filePath string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -65,7 +55,7 @@ func (t fileSystemStore) findPattern(files *Files, path string, re *regexp.Regex
 	}
 }
 
-func (t fileSystemStore) addToTar(files Files) {
+func (fc fileCollector) addToTar(files Files, cfg *config.Config) {
 	l := logp.NewLogger("files")
 	clusterDiskPathRegex := regexp.MustCompile(`(.*\/services\/allocator\/containers\/)((?:elasticsearch|kibana).*)`)
 	eceDiskPathRegex := regexp.MustCompile(`(.*(?:\/services\/|bootstrap-logs\/))(.*)$`)
@@ -79,9 +69,9 @@ func (t fileSystemStore) addToTar(files Files) {
 			if file.zeroByteCheck(match[2]) {
 				continue
 			}
-			if t.dateFilter(file, t.cfg.OlderThan) {
-				tarRelPath := filepath.Join(t.cfg.DiagnosticFilename(), match[2])
-				t.AddFile(file.filepath, file.info, tarRelPath)
+			if fc.dateFilter(file, cfg) {
+				tarRelPath := filepath.Join(cfg.DiagnosticFilename(), match[2])
+				cfg.Store.AddFile(file.filepath, file.info, tarRelPath)
 				l.Infof("Adding log file: %s", match[2])
 			}
 
@@ -93,9 +83,9 @@ func (t fileSystemStore) addToTar(files Files) {
 				if file.zeroByteCheck(match[2]) {
 					continue
 				}
-				if t.dateFilter(file, t.cfg.OlderThan) {
-					tarRelPath := filepath.Join(t.cfg.DiagnosticFilename(), "ece", match[2])
-					t.AddFile(file.filepath, file.info, tarRelPath)
+				if fc.dateFilter(file, cfg) {
+					tarRelPath := filepath.Join(cfg.DiagnosticFilename(), "ece", match[2])
+					cfg.Store.AddFile(file.filepath, file.info, tarRelPath)
 					l.Infof("Adding log file: %s", match[2])
 				}
 
@@ -103,11 +93,11 @@ func (t fileSystemStore) addToTar(files Files) {
 				if file.zeroByteCheck(filepath.Base(file.filepath)) {
 					continue
 				}
-				if t.dateFilter(file, t.cfg.OlderThan) {
+				if fc.dateFilter(file, cfg) {
 					// This should be a catch all. This shouldn't happen.
 					l.Warnf("THIS SHOULD NOT HAPPEN, %s", file.filepath)
-					tarRelPath := filepath.Join(t.cfg.DiagnosticFilename(), "ece", filepath.Base(file.filepath))
-					t.AddFile(file.filepath, file.info, tarRelPath)
+					tarRelPath := filepath.Join(cfg.DiagnosticFilename(), "ece", filepath.Base(file.filepath))
+					cfg.Store.AddFile(file.filepath, file.info, tarRelPath)
 					l.Infof("Adding log file: %s", filepath.Base(file.filepath))
 				}
 			}
@@ -115,18 +105,19 @@ func (t fileSystemStore) addToTar(files Files) {
 	}
 }
 
-func (t fileSystemStore) dateFilter(file File, window time.Duration) bool {
+func (fc fileCollector) dateFilter(file File, cfg *config.Config) bool {
 	l := logp.NewLogger("files")
 
 	modTime := file.info.ModTime()
-	delta := t.cfg.StartTime.Sub(modTime)
+	window := cfg.OlderThan
+	delta := cfg.StartTime.Sub(modTime)
 	if delta <= window {
 		return true
 	}
 	overLimitString := (delta - window).Truncate(time.Millisecond).String()
 	limitString := window.Truncate(time.Millisecond).String()
 
-	fp := strings.TrimLeft(file.filepath, t.cfg.ElasticFolder)
+	fp := strings.TrimLeft(file.filepath, cfg.ElasticFolder)
 
 	l.Warnf("Ignoring file: %s threshold, %s too old, %s", limitString, overLimitString, fp)
 	return false

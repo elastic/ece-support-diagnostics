@@ -18,22 +18,20 @@ import (
 	"github.com/elastic/ece-support-diagnostics/collectors/zookeeper"
 	"github.com/elastic/ece-support-diagnostics/config"
 	"github.com/elastic/ece-support-diagnostics/helpers"
-	"github.com/elastic/ece-support-diagnostics/store"
 )
 
-var re = regexp.MustCompile(`\/f[r|a]c-(\w+(?:-\w+)?)-(\w+)`)
-
-type fileSystemStore struct {
-	store.ContentStore
-	cfg *config.Config
+type dockerCollector struct {
+	re *regexp.Regexp
 }
 
-func Run(t store.ContentStore, config *config.Config) {
-	store := fileSystemStore{t, config}
-	store.runDockerCmds()
+func Run(cfg *config.Config) {
+	dock := dockerCollector{
+		re: regexp.MustCompile(`\/f[r|a]c-(\w+(?:-\w+)?)-(\w+)`),
+	}
+	dock.runDockerCmds(cfg)
 }
 
-func (t fileSystemStore) runDockerCmds() {
+func (dock dockerCollector) runDockerCmds(cfg *config.Config) {
 	l := logp.NewLogger("docker")
 	// log := logp.NewLogger("docker")
 	dockerMsg := "Collecting Docker information"
@@ -56,31 +54,31 @@ func (t fileSystemStore) runDockerCmds() {
 		panic(err)
 	}
 
-	fp := func(path string) string { return filepath.Join(t.cfg.DiagnosticFilename(), "server_info", path) }
+	fp := func(path string) string { return filepath.Join(cfg.DiagnosticFilename(), "server_info", path) }
 
-	t.writeJSON(fp("DockerContainers.json"), Containers)
+	dock.writeJSON(fp("DockerContainers.json"), Containers, cfg)
 	// writeJSON(fp("DockerContainers.json"), cmd(Containers, err), tar)
 
 	imageList, _ := cli.ImageList(ctx, types.ImageListOptions{})
-	t.writeJSON(fp("DockerRepository.json"), imageList)
+	dock.writeJSON(fp("DockerRepository.json"), imageList, cfg)
 	// writeJSON(fp("DockerRepository.json"), cmd(cli.ImageList(ctx, types.ImageListOptions{})), tar)
 
 	info, _ := cli.Info(ctx)
-	t.writeJSON(fp("DockerInfo.json"), info)
+	dock.writeJSON(fp("DockerInfo.json"), info, cfg)
 	// writeJSON(fp("DockerInfo.json"), cmd(cli.Info(ctx)), tar)
 
 	diskUsage, _ := cli.DiskUsage(ctx)
-	t.writeJSON(fp("DockerDiskUsage.json"), diskUsage)
+	dock.writeJSON(fp("DockerDiskUsage.json"), diskUsage, cfg)
 	// writeJSON(fp("DockerDiskUsage.json"), cmd(cli.DiskUsage(ctx)), tar)
 
 	serverVersion, _ := cli.ServerVersion(ctx)
-	t.writeJSON(fp("DockerServerVersion.json"), serverVersion)
+	dock.writeJSON(fp("DockerServerVersion.json"), serverVersion, cfg)
 	// writeJSON(fp("DockerServerVersion.json"), cmd(cli.ServerVersion(ctx)), tar)
 
 	helpers.ClearStdoutLine()
 	fmt.Println("[✔] Collected Docker information")
 
-	since := t.cfg.StartTime.Add(-t.cfg.OlderThan).Format(time.RFC3339Nano)
+	since := cfg.StartTime.Add(cfg.OlderThan).Format(time.RFC3339Nano)
 	l.Infof("Docker will ignore log entries older than %s", since)
 
 	for _, container := range Containers {
@@ -92,7 +90,7 @@ func (t fileSystemStore) runDockerCmds() {
 
 		// https://github.com/elastic/ece-support-diagnostics/issues/5
 		if container.Names[0] == "/frc-zookeeper-servers-zookeeper" {
-			zookeeper.Run(t, container, t.cfg)
+			zookeeper.Run(container, cfg)
 			// zookeeperMNTR(container, tar)
 			fmt.Println("[✔] Collected Zookeeper data")
 		}
@@ -100,20 +98,20 @@ func (t fileSystemStore) runDockerCmds() {
 
 	fmt.Println("[ ] Collecting Docker logs")
 	for _, container := range Containers {
-		t.dockerLogs(cli, container, since)
+		dock.dockerLogs(cli, container, since, cfg)
 	}
 	helpers.ClearStdoutLine()
 	fmt.Println("[✔] Collected Docker logs")
 }
 
-func (t fileSystemStore) dockerLogs(cli *client.Client, container types.Container, since string) {
+func (dock dockerCollector) dockerLogs(cli *client.Client, container types.Container, since string, cfg *config.Config) {
 	l := logp.NewLogger("docker_logs")
 
 	// getValue := func(key string) string { if val, ok := container.Labels[key]; ok {return val}; return "" }
 	dockerName := container.Names[0]
 
 	if strings.HasPrefix(dockerName, "/frc") || strings.HasPrefix(dockerName, "/fac") {
-		filePath := t.createFilePath(container)
+		filePath := dock.createFilePath(container, cfg)
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
@@ -143,12 +141,12 @@ func (t fileSystemStore) dockerLogs(cli *client.Client, container types.Containe
 		stdout, _ := ioutil.ReadAll(stdoutput)
 		// ignore empty data
 		if len(stdout) > 0 {
-			t.AddData(filePath+".stdout.log", stdout)
+			cfg.Store.AddData(filePath+".stdout.log", stdout)
 		}
 		stderr, _ := ioutil.ReadAll(stderror)
 		// ignore empty data
 		if len(stderr) > 0 {
-			t.AddData(filePath+".stderr.log", stderr)
+			cfg.Store.AddData(filePath+".stderr.log", stderr)
 		}
 
 		// //read the first 8 bytes to ignore the HEADER part from docker container logs
@@ -164,7 +162,7 @@ func (t fileSystemStore) dockerLogs(cli *client.Client, container types.Containe
 		cTop, err := cli.ContainerTop(ctx, container.ID, []string{})
 		cTjson, err := json.MarshalIndent(cTop, "", "  ")
 		// err = ioutil.WriteFile(filePath+".top", cTjson, 0644)
-		t.AddData(filePath+".top", cTjson)
+		cfg.Store.AddData(filePath+".top", cTjson)
 
 		if err != nil {
 			panic(err)
@@ -175,12 +173,12 @@ func (t fileSystemStore) dockerLogs(cli *client.Client, container types.Containe
 
 // TODO: FIX THIS, regex should be passed in, not global
 // func createFilePath(container types.Container, re *regexp.Regexp) string {
-func (t fileSystemStore) createFilePath(container types.Container) string {
+func (dock dockerCollector) createFilePath(container types.Container, cfg *config.Config) string {
 	dockerName := container.Names[0]
 	labels := container.Labels
 
 	eceLogPath := func(kind, filename string) string {
-		return filepath.Join(t.cfg.DiagnosticFilename(), "ece", kind, filename)
+		return filepath.Join(cfg.DiagnosticFilename(), "ece", kind, filename)
 	}
 	// if a runner launches the container then it has `runner.container_name`
 	if containerName, ok := labels["co.elastic.cloud.runner.container_name"]; ok {
@@ -199,7 +197,7 @@ func (t fileSystemStore) createFilePath(container types.Container) string {
 		instanceName := labels["co.elastic.cloud.allocator.instance_id"] // "instance-0000000000"
 		fileName := fmt.Sprintf("%.12s_%s-%s", container.ID, kind, version+".log")
 
-		return filepath.Join(t.cfg.DiagnosticFilename(), kind, clusterID, instanceName, fileName)
+		return filepath.Join(cfg.DiagnosticFilename(), kind, clusterID, instanceName, fileName)
 		// 5a4f7f_elasticsearch-5.6.14_instance-0000000000_506b8c016045.log
 	}
 
@@ -207,7 +205,7 @@ func (t fileSystemStore) createFilePath(container types.Container) string {
 	//  thus they do not have any of the docker Labels above
 	//  this also serves as a catch all
 	var name string
-	match := re.FindStringSubmatch(dockerName)
+	match := dock.re.FindStringSubmatch(dockerName)
 	if len(match) == 3 {
 		name = match[2]
 	} else {
@@ -219,12 +217,12 @@ func (t fileSystemStore) createFilePath(container types.Container) string {
 
 }
 
-func (t fileSystemStore) writeJSON(path string, apiResp interface{}) error {
+func (dock dockerCollector) writeJSON(path string, apiResp interface{}, cfg *config.Config) error {
 	json, err := json.MarshalIndent(apiResp, "", "  ")
 	if err != nil {
 		panic(err)
 	}
-	err = t.AddData(path, json)
+	err = cfg.Store.AddData(path, json)
 	if err != nil {
 		panic(err)
 	}

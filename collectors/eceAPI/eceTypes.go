@@ -19,18 +19,3 @@ type Rest struct {
 	Loop     string
 	Sub      []Rest
 }
-
-// // HTTPClient holds the client, endpoint and credentials
-// type HTTPClient struct {
-// 	client   *http.Client
-// 	endpoint string
-// 	username string
-// 	passwd   string
-// 	writer   func(filepath string, b []byte) error
-// }
-
-// // RequestTask task
-// type RequestTask struct {
-// 	config   *HTTPClient
-// 	restItem Rest
-// }

@@ -16,7 +16,7 @@ import (
 	"github.com/elastic/ece-support-diagnostics/helpers"
 )
 
-// RunRest starts the chain of functions to collect the Rest/HTTP calls
+// Run is the entry point to make the ECE Rest API calls
 func Run(rest []Rest, cfg *config.Config) {
 	fmt.Println("[ ] Collecting API information ECE and Elasticsearch")
 
