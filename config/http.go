@@ -12,14 +12,14 @@ func NewHTTPClient() *http.Client {
 	var tr = &http.Transport{
 		// Disable Certificate Checking
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-		ResponseHeaderTimeout: 15 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
 		// Connection timeout = 5s
 		Dial: (&net.Dialer{
-			Timeout: 5 * time.Second,
+			Timeout: 10 * time.Second,
 		}).Dial,
 		// TLS Handshake Timeout = 5s
-		TLSHandshakeTimeout: 5 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
 	}
 	// HTTP Timeout = 10s
-	return &http.Client{Timeout: 10 * time.Second, Transport: tr}
+	return &http.Client{Timeout: 30 * time.Second, Transport: tr}
 }

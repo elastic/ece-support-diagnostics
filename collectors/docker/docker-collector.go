@@ -82,12 +82,6 @@ func (dock dockerCollector) runDockerCmds(cfg *config.Config) {
 	l.Infof("Docker will ignore log entries older than %s", since)
 
 	for _, container := range Containers {
-		// if container.Names[0] == "/frc-cloud-uis-cloud-ui" {
-		// 	if cfg.DisableRest != true {
-		// 		runRest(tar)
-		// 	}
-		// }
-
 		// https://github.com/elastic/ece-support-diagnostics/issues/5
 		if container.Names[0] == "/frc-zookeeper-servers-zookeeper" {
 			zookeeper.Run(container, cfg)

@@ -45,14 +45,14 @@ var rootCmd = &cobra.Command{
 			// Exit here because we could not create the tar file
 			log.Fatal(err)
 		}
-
+		// set Store interface in the config
 		cfg.Store = tar
 
 		docker.Run(cfg)
 		eceAPI.Run(eceAPI.NewRestCalls(), cfg)
-		eceMetrics.Run(cfg)
 		systemInfo.Run(systemInfo.NewSystemCmdTasks(), systemInfo.NewSystemFileTasks(), cfg)
 		systemLogs.Run(cfg)
+		eceMetrics.Run(cfg)
 
 		logTarPath := filepath.Join(cfg.DiagnosticFilename(), "diagnostic.log")
 		tar.Finalize(cfg.DiagnosticLogFilePath(), logTarPath)
@@ -92,7 +92,6 @@ func init() {
 		"/mnt/data/elastic",
 		"this should point to where you installed ECE",
 	)
-
 	rootCmd.PersistentFlags().StringVarP(
 		&olderThan,
 		"ignoreOlderThan",
@@ -100,7 +99,6 @@ func init() {
 		"72h",
 		"This is a cutoff, any log file with a modification time older than this duration will be ignored",
 	)
-
 	rootCmd.PersistentFlags().BoolVar(
 		&cfg.DisableRest,
 		"disableRest",
@@ -114,7 +112,6 @@ func init() {
 		"",
 		"Elastic Upload ID",
 	)
-
 }
 
 func initConfig() {
