@@ -49,7 +49,6 @@ var rootCmd = &cobra.Command{
 		cfg.Store = tar
 
 		docker.Run(cfg)
-		// eceAPI.Run(eceAPI.NewRestCalls(), cfg)
 		eceAPI.RunECEapis(cfg)
 		systemInfo.Run(systemInfo.NewSystemCmdTasks(), systemInfo.NewSystemFileTasks(), cfg)
 		systemLogs.Run(cfg)

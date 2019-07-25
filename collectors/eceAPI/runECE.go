@@ -20,12 +20,9 @@ func RunECEapis(cfg *config.Config) {
 	// Used for templating and version checking.
 	ece := helpers.TaskContext{
 		// Version: run ECEversionCheck to get the initial version
-		// Endpoint: "https://localhost:12443/",
-		Endpoint: cfg.APIendpoint,
-		User:     cfg.User,
-		Pass:     cfg.Pass,
-		// User:     "admin",
-		// Pass:     "2r9Nwubii1T1wiOxlzoG0abbfw0MxHlJZnx45GJHOPx",
+		Endpoint:  cfg.APIendpoint,
+		User:      cfg.User,
+		Pass:      cfg.Pass,
 		Client:    cfg.HTTPclient,
 		Store:     cfg.Store,
 		StorePath: cfg.DiagnosticFilename(),
