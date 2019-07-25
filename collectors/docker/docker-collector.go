@@ -78,7 +78,7 @@ func (dock dockerCollector) runDockerCmds(cfg *config.Config) {
 	helpers.ClearStdoutLine()
 	fmt.Println("[✔] Collected Docker information")
 
-	since := cfg.StartTime.Add(cfg.OlderThan).Format(time.RFC3339Nano)
+	since := cfg.StartTime.Add(-cfg.OlderThan).Format(time.RFC3339Nano)
 	l.Infof("Docker will ignore log entries older than %s", since)
 
 	for _, container := range Containers {
