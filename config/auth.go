@@ -32,7 +32,7 @@ type Auth struct {
 func (c *Config) initalizeCredentials() error {
 	log := logp.NewLogger("ValidateAuth")
 
-	c.Auth.User, c.Auth.Pass = credsFromCmdPrompt()
+	c.checkForPassword()
 
 	url, _ := url.Parse(c.APIendpoint)
 
@@ -68,6 +68,31 @@ func (c *Config) initalizeCredentials() error {
 	// TODO: write license response to file?
 
 	return fmt.Errorf("Authentication failed")
+}
+
+func (c *Config) checkForPassword() {
+	if c.Auth.User != "" {
+		// Split the username if it contains a `:`
+		auth := strings.SplitN(c.Auth.User, ":", 2)
+		if len(auth) == 2 {
+			c.Auth.User = auth[0]
+			c.Auth.Pass = auth[1]
+		} else {
+			// Only the username was specified
+			c.Auth.Pass = promptForPassword()
+		}
+	} else {
+		// no username flag invoked, need user & pass
+		c.Auth.User, c.Auth.Pass = credsFromCmdPrompt()
+	}
+}
+
+func promptForPassword() string {
+	fmt.Print("Enter Password: ")
+	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+	helpers.PanicError(err)
+	password := string(bytePassword)
+	return password
 }
 
 // getCredentials is used for securely prompting for a password from stdin

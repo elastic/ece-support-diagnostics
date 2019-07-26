@@ -79,6 +79,18 @@ func init() {
 	cfg = config.New()
 
 	rootCmd.PersistentFlags().StringVarP(
+		&cfg.Auth.User,
+		"username",
+		"u",
+		"",
+		`<user:password>
+		
+	Specify the user name and password to use to authenticate to ECE
+
+	If you only specify the user name, you will be prompted for a password
+		`,
+	)
+	rootCmd.PersistentFlags().StringVarP(
 		&cfg.Basepath,
 		"tmpFolder",
 		"t",
@@ -108,7 +120,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(
 		&cfg.UploadUID,
 		"uploadID",
-		"u",
+		"s",
 		"",
 		"Elastic Upload ID",
 	)
