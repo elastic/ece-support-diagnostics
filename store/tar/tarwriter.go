@@ -28,19 +28,22 @@ func Create(filePath string) (*Tarball, error) {
 	return createNewTar(filePath)
 }
 
-func (t *Tarball) Filepath() string {
-	fp, _ := filepath.Abs(t.f.Name())
+// Filepath provides the full filepath to the tar file
+func (tw *Tarball) Filepath() string {
+	fp, _ := filepath.Abs(tw.f.Name())
 	return fp
 }
 
-func (t *Tarball) Filename() string {
-	return t.f.Name()
+// Filename provides the filename of the tar file
+func (tw *Tarball) Filename() string {
+	return tw.f.Name()
 }
 
-func (t *Tarball) Close() {
-	t.tar.Close()
-	t.gzip.Close()
-	t.f.Close()
+// Close will finalize the tar / gzip file.
+func (tw *Tarball) Close() {
+	tw.tar.Close()
+	tw.gzip.Close()
+	tw.f.Close()
 }
 
 func createNewTar(tarballFilePath string) (*Tarball, error) {
@@ -58,19 +61,19 @@ func createNewTar(tarballFilePath string) (*Tarball, error) {
 }
 
 // Finalize adds the logfile to the tar, and closes the tar.
-func (t *Tarball) Finalize(logfilePath, tarRelPath string) {
+func (tw *Tarball) Finalize(logfilePath, tarRelPath string) {
 	l := logp.NewLogger("TarFile")
 	l.Infof("Adding log file: %s", logfilePath)
 
-	msgClosingTar := fmt.Sprintf(" the tar: %s", t.Filepath())
+	msgClosingTar := fmt.Sprintf(" the tar: %s", tw.Filepath())
 	l.Infof("Finalizing %s", msgClosingTar)
 	fmt.Println("[ ] Finalizing" + msgClosingTar)
 
 	fileInfo, err := os.Stat(logfilePath)
 	helpers.PanicError(err)
 
-	t.AddFile(logfilePath, fileInfo, tarRelPath)
-	t.Close()
+	tw.AddFile(logfilePath, fileInfo, tarRelPath)
+	tw.Close()
 
 	helpers.ClearStdoutLine()
 	fmt.Println("[✔] Finished" + msgClosingTar)

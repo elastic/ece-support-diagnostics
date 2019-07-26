@@ -59,5 +59,4 @@ func (zk zooCollector) zookeeperMNTR(container types.Container, cfg *config.Conf
 
 	fpath := filepath.Join(cfg.DiagnosticFilename(), "ece", "zookeeper_mntr.txt")
 	cfg.Store.AddData(fpath, out)
-	// fmt.Println(test, err)
 }

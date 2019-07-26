@@ -11,7 +11,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func test(cfg *config.Config) {
+func exampleElasticsearchRunner(cfg *config.Config) {
 
 	// store := new(fileStore)
 

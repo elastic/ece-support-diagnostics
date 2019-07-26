@@ -2,14 +2,15 @@ package eceAPI
 
 import "github.com/elastic/ece-support-diagnostics/helpers"
 
+// NewECEversionTask provides the single task for fetching the ECE version
 func NewECEversionTask() helpers.Task {
-	// platform is collected separately to determine the ECE version
 	return helpers.Task{
 		Filename: "ece/platform.json",
 		Uri:      "/api/v1/platform",
 	}
 }
 
+// NewECEtasks provides the tasks for collection of the ECE APIs
 func NewECEtasks() *helpers.Tasks {
 	return &helpers.Tasks{
 		helpers.Task{
@@ -36,6 +37,7 @@ func NewECEtasks() *helpers.Tasks {
 	}
 }
 
+// NewECEdeploymentTasks provides tasks that will be collected against ECE deployments / elasticsearch clusters
 func NewECEdeploymentTasks() *helpers.Tasks {
 	// TaskConext will use the attached Metadata interface to template these variables
 	return &helpers.Tasks{

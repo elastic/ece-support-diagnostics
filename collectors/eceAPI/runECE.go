@@ -12,6 +12,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+// RunECEapis will start collection of the ECE and elasticsearch APIs
 func RunECEapis(cfg *config.Config) {
 	fmt.Println("[ ] Collecting API information ECE and Elasticsearch")
 
@@ -50,8 +51,10 @@ func RunECEapis(cfg *config.Config) {
 	fmt.Println("[✔] Collected API information for ECE and Elasticsearch")
 }
 
+// ECEesClusters is only used for Callback purposes
 type ECEesClusters struct{}
 
+// Exec provides the Callback method needed for the interface
 func (e ECEesClusters) Exec(t helpers.TaskContext, payload []byte) {
 	// used to wait for each cluster to complete
 	var clusterWait sync.WaitGroup

@@ -8,6 +8,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+// ECEversionCheck finds the ECE version to attach to the TaskContext
 func ECEversionCheck(taskCtx helpers.TaskContext) string {
 	taskCtx.Version = "0"
 	taskCtx.Task = NewECEversionTask()

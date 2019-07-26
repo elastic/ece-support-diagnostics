@@ -24,6 +24,7 @@ type dockerCollector struct {
 	re *regexp.Regexp
 }
 
+// Run runs
 func Run(cfg *config.Config) {
 	dock := dockerCollector{
 		re: regexp.MustCompile(`\/f[r|a]c-(\w+(?:-\w+)?)-(\w+)`),

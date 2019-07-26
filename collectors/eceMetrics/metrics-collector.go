@@ -29,10 +29,13 @@ type metricsCollector struct {
 	tp CustomRoundTripper
 }
 
+// CustomRoundTripper is used to override the http.RoundTripper and attach headers
+//  to each request
 type CustomRoundTripper struct {
 	http.RoundTripper
 }
 
+// Run runs
 func Run(cfg *config.Config) {
 	fmt.Println("[ ] Collecting ECE metricbeat data")
 

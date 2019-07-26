@@ -16,9 +16,7 @@ func (c *Config) setupLogging() {
 		ToFiles:    true,
 		ToEventLog: false,
 		Files: logp.FileConfig{
-			Path: filepath.Dir(c.DiagnosticLogFilePath()),
-			// Path: c.Basepath,
-			// Name:        c.DiagName + ".log",
+			Path:        filepath.Dir(c.DiagnosticLogFilePath()),
 			Name:        filepath.Base(c.DiagnosticLogFilePath()),
 			MaxSize:     20000000,
 			MaxBackups:  0,

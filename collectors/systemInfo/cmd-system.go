@@ -1,9 +1,9 @@
 package systemInfo
 
+// NewSystemFileTasks provides a set of tasks for collecting files from the target host
+//  The RawFile runs a glob to find files. If more than one file is found
+//  the data from each file is concatenated into the target Filename
 func NewSystemFileTasks() []SystemFile {
-	// SystemFiles will collect files from the target host
-	//  The RawFile runs a glob to find files. If more than one file is found
-	//  the data from each file is concatenated into the target Filename
 	return []SystemFile{
 		SystemFile{
 			Filename: "linux-release.txt",
@@ -21,8 +21,8 @@ func NewSystemFileTasks() []SystemFile {
 
 }
 
+// NewSystemCmdTasks povides a set of tasks for system commands to be collected
 func NewSystemCmdTasks() []SystemCmd {
-	// SystemCmds holds the set of system commands that need to be collected
 	return []SystemCmd{
 		SystemCmd{
 			Filename: "uname.txt",

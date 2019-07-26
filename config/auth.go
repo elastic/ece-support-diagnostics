@@ -15,20 +15,13 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+// Auth holds the user and pass
 type Auth struct {
 	User, Pass    string
 	authenticated bool
 }
 
-// func (a *Auth) OK() bool {
-// 	if a.authenticated {
-// 		return true
-// 	}
-// 	return false
-// }
-
-// SetupCredentials checks that the auth credentials are valid
-//  successful auth creds are used for remaining requests
+// initalizeCredentials ensures that auth credentials are setup and valid
 func (c *Config) initalizeCredentials() error {
 	log := logp.NewLogger("ValidateAuth")
 

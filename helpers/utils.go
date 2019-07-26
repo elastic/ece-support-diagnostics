@@ -4,17 +4,20 @@ import (
 	"fmt"
 )
 
+// PanicError - progress over perfection, but sometimes you just need to panic!
 func PanicError(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
+// ClearStdoutLine clear previous stdout line
 func ClearStdoutLine() {
 	fmt.Printf("\033[F") // back to previous line
 	fmt.Printf("\033[K") // clear line
 }
 
+// ByteCountDecimal provides a human string for storage based on 1000
 func ByteCountDecimal(b int64) string {
 	const unit = 1000
 	if b < unit {
@@ -28,6 +31,7 @@ func ByteCountDecimal(b int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
 }
 
+// ByteCountBinary provides a human string for storage based on 1024
 func ByteCountBinary(b int64) string {
 	const unit = 1024
 	if b < unit {
@@ -40,25 +44,3 @@ func ByteCountBinary(b int64) string {
 	}
 	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
-
-// func setupFolders(folders []string) {
-// 	for _, folder := range folders {
-// 		f, _ := filepath.Abs(folder)
-// 		flog := logp.NewLogger("folders")
-// 		flog.Info("Temp folder setup: ", f)
-// 		os.MkdirAll(f, os.ModePerm)
-// 	}
-// }
-
-// func stringInSlice(a string, list []string) bool {
-// 	for _, b := range list {
-// 		if b == a {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
-
-// func writeFile(filepath string, data []byte) error {
-// 	return ioutil.WriteFile(filepath, data, 0644)
-// }

@@ -66,6 +66,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Execute is the main entry point
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -87,8 +88,7 @@ func init() {
 		
 	Specify the user name and password to use to authenticate to ECE
 
-	If you only specify the user name, you will be prompted for a password
-		`,
+	If you only specify the user name, you will be prompted for a password`,
 	)
 	rootCmd.PersistentFlags().StringVarP(
 		&cfg.Basepath,

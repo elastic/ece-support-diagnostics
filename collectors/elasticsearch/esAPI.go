@@ -6,8 +6,7 @@ import (
 	"github.com/elastic/ece-support-diagnostics/helpers"
 )
 
-// ECE should prepend `elasticsearch/{{ .ClusterID }}/` to the URI
-
+// NewElasticsearchAPIset return the set of API tasks to collect for an elasticsearch cluster
 func NewElasticsearchAPIset() *helpers.Tasks {
 	APItasks := helpers.Tasks{
 		// Common

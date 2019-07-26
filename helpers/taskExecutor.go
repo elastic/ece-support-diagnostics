@@ -16,6 +16,7 @@ import (
 	"github.com/elastic/ece-support-diagnostics/store"
 )
 
+// TaskContext wraps a Task with the needed dependencies to execute it
 type TaskContext struct {
 	Endpoint, Version, User, Pass string
 	Meta                          interface{}
@@ -35,6 +36,7 @@ type Task struct {
 	Callback                        Callback
 }
 
+// Callback provides a way to execute a new function after a task completes
 type Callback interface {
 	Exec(taskCtx TaskContext, payload []byte)
 }
@@ -68,6 +70,8 @@ func (c TaskContext) Filename() string {
 	return templateString(c.Task.Filename, c.Meta)
 }
 
+// DoRequest skips any version checking, and dispatches the http request for a task
+//  it should not be used unless you must skip version checking
 func (c TaskContext) DoRequest(ctx context.Context) ([]byte, error) {
 	// req, _ := http.NewRequest(c.Method(), c.URL(), nil)
 	req, _ := http.NewRequest(c.httpMethod(), c.URL(), bytes.NewBuffer(c.RequestBody))
@@ -102,6 +106,7 @@ func (c TaskContext) DoRequest(ctx context.Context) ([]byte, error) {
 	return data, nil
 }
 
+// TaskExecuteWithWaitGroup validates the version and starts the http request
 func (c TaskContext) TaskExecuteWithWaitGroup(wg *sync.WaitGroup) {
 	// set a 30s task timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -114,6 +119,7 @@ func (c TaskContext) TaskExecuteWithWaitGroup(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
+// TaskExecute validates the version and starts the http request
 func (c TaskContext) TaskExecute() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
