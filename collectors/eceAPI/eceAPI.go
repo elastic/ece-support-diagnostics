@@ -2,13 +2,16 @@ package eceAPI
 
 import "github.com/elastic/ece-support-diagnostics/helpers"
 
+func NewECEversionTask() helpers.Task {
+	// platform is collected separately to determine the ECE version
+	return helpers.Task{
+		Filename: "ece/platform.json",
+		Uri:      "/api/v1/platform",
+	}
+}
+
 func NewECEtasks() *helpers.Tasks {
 	return &helpers.Tasks{
-		// platform is collected separately to determine the ECE version
-		// Task{
-		// 	filename: "ece/platform.json",
-		// 	uri:      "/api/v1/platform",
-		// },
 		helpers.Task{
 			Filename: "ece/allocators.json",
 			Uri:      "/api/v1/platform/infrastructure/allocators",

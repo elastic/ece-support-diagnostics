@@ -10,10 +10,7 @@ import (
 
 func ECEversionCheck(taskCtx helpers.TaskContext) string {
 	taskCtx.Version = "0"
-	taskCtx.Task = helpers.Task{
-		Filename: "ece/platform.json",
-		Uri:      "/api/v1/platform",
-	}
+	taskCtx.Task = NewECEversionTask()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
