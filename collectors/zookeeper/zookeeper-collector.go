@@ -11,11 +11,6 @@ import (
 	"github.com/elastic/ece-support-diagnostics/config"
 )
 
-// type fileSystemStore struct {
-// 	store.ContentStore
-// 	cfg *config.Config
-// }
-
 type zooCollector struct{}
 
 // Run runs

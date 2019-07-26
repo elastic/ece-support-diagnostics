@@ -15,9 +15,6 @@ import (
 func RunECEapis(cfg *config.Config) {
 	fmt.Println("[ ] Collecting API information ECE and Elasticsearch")
 
-	// store := new(fileStore)
-
-	// Used for templating and version checking.
 	ece := helpers.TaskContext{
 		// Version: run ECEversionCheck to get the initial version
 		Endpoint:  cfg.APIendpoint,
@@ -30,7 +27,6 @@ func RunECEapis(cfg *config.Config) {
 		//           in the filename / uri's
 	}
 	ece.Version = ECEversionCheck(ece)
-	// fmt.Println(ece.Version)
 
 	// loop over each Task and dispatch
 	func(tasks helpers.Tasks, tskCtl helpers.TaskContext) {
@@ -88,10 +84,6 @@ func (e ECEesClusters) Exec(t helpers.TaskContext, payload []byte) {
 
 		}(*NewECEdeploymentTasks(), t, &clusterWait)
 
-		// println(clusterName.String())
-		// println(clusterID.String())
-		// println()
-
 		// loop over each Task and dispatch
 		go func(tasks helpers.Tasks, tskCtl helpers.TaskContext, clusterWait *sync.WaitGroup) {
 			clusterWait.Add(1)
@@ -109,8 +101,6 @@ func (e ECEesClusters) Exec(t helpers.TaskContext, payload []byte) {
 				wg.Add(1)
 
 				// task.Filename = filepath.Join("elasticsearch/{{ .cluster_id }}", task.Filename)
-				// task.Filename = filepath.Join("elasticsearch/{{ .cluster_id }}", task.Filename)
-
 				task.Headers = eceHeader()
 				tskCtl.Task = task
 

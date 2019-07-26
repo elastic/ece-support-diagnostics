@@ -120,7 +120,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(
 		&cfg.UploadUID,
 		"uploadID",
-		"s",
+		"U",
 		"",
 		"Elastic Upload ID",
 	)

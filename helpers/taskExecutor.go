@@ -16,14 +16,6 @@ import (
 	"github.com/elastic/ece-support-diagnostics/store"
 )
 
-// type Store interface {
-// 	AddData(filePath string, content []byte) error
-// }
-
-// type TaskController interface {
-// 	TaskCtl
-// }
-
 type TaskContext struct {
 	Endpoint, Version, User, Pass string
 	Meta                          interface{}
