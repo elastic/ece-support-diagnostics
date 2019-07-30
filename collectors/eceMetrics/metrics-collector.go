@@ -26,7 +26,8 @@ import (
 )
 
 type metricsCollector struct {
-	tp CustomRoundTripper
+	log *logp.Logger
+	tp  CustomRoundTripper
 }
 
 // CustomRoundTripper is used to override the http.RoundTripper and attach headers
@@ -36,25 +37,33 @@ type CustomRoundTripper struct {
 }
 
 // Run runs
-func Run(cfg *config.Config) {
-	fmt.Println("[ ] Collecting ECE metricbeat data")
+func Run(status chan<- string, cfg *config.Config) {
+
+	if cfg.DisableRest == true {
+		status <- fmt.Sprintf("\u26A0 skipping collection of ECE metricbeat data")
+		return
+	}
 
 	metrics := metricsCollector{
+		log: logp.NewLogger("MetricScroll"),
 		tp: CustomRoundTripper{
 			RoundTripper: cfg.HTTPclient.Transport,
 		},
 	}
 
-	metrics.ScrollRunner(cfg)
+	err := metrics.ScrollRunner(cfg)
+	if err != nil {
+		status <- fmt.Sprintf("\u2715 Failed to collect ECE metricbeat data")
+	}
 
-	helpers.ClearStdoutLine()
-	fmt.Println("[✔] Collected ECE metricbeat data")
+	status <- fmt.Sprintf("\u2713 collected ECE metricbeat data")
 }
 
-func (m metricsCollector) ScrollRunner(cfg *config.Config) {
+func (m metricsCollector) ScrollRunner(cfg *config.Config) error {
 	metricCluster, err := m.discoverMetricsCluster(cfg)
 	if err != nil {
-		panic(err)
+		m.log.Error(err)
+		return err
 	}
 	u, err := url.Parse(cfg.APIendpoint)
 	if err != nil {
@@ -76,12 +85,15 @@ func (m metricsCollector) ScrollRunner(cfg *config.Config) {
 	}
 	// fmt.Println(es.Cluster.Health())
 	m.doScroll(es, cfg)
-
+	return nil
 }
 
 func (m metricsCollector) discoverMetricsCluster(cfg *config.Config) (string, error) {
 	client := &http.Client{Transport: &m.tp}
 
+	if cfg.APIendpoint == "" {
+		return "", fmt.Errorf("API endpoint is blank")
+	}
 	u, _ := url.Parse(cfg.APIendpoint)
 	u.Path = path.Join(u.Path, "/api/v1/clusters/elasticsearch")
 
@@ -118,6 +130,8 @@ type stat struct {
 
 func (m metricsCollector) doScroll(es *elasticsearch.Client, cfg *config.Config) {
 	log := logp.NewLogger("MetricScroll")
+
+	// TODO: filter all event.dataset: `system.process` (keyword, single term)
 
 	query := `{
 		"size": 5000,

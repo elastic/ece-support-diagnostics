@@ -12,7 +12,6 @@ import (
 
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/ece-support-diagnostics/config"
-	"github.com/elastic/ece-support-diagnostics/helpers"
 	"github.com/elastic/go-sysinfo"
 	"github.com/shirou/gopsutil/cpu"
 )
@@ -20,15 +19,20 @@ import (
 type systemInfo struct{}
 
 // Run runs
-func Run(sCmd []SystemCmd, sFiles []SystemFile, cfg *config.Config) {
+func Run(status chan<- string, cfg *config.Config) {
+	sCmd := NewSystemCmdTasks()
+	sFiles := NewSystemFileTasks()
+
 	sysinfo := systemInfo{}
 	sysinfo.runSystemCmds(sCmd, sFiles, cfg)
+
+	status <- fmt.Sprintf("\u2713 collected system information")
 }
 
 func (s systemInfo) runSystemCmds(sCmd []SystemCmd, sFiles []SystemFile, cfg *config.Config) {
 	// l := logp.NewLogger("system_cmd")
 
-	fmt.Println("[ ] Collecting system information")
+	// fmt.Println("[ ] Collecting system information")
 
 	var wg sync.WaitGroup
 	for _, cmd := range sCmd {
@@ -98,8 +102,6 @@ func (s systemInfo) runSystemCmds(sCmd []SystemCmd, sFiles []SystemFile, cfg *co
 	// 		l.Error(err)
 	// 	}
 	// }
-	helpers.ClearStdoutLine()
-	fmt.Println("\r[✔] Collected system information")
 }
 
 func (s systemInfo) processFile(c SystemFile, wg *sync.WaitGroup, cfg *config.Config) {
@@ -116,7 +118,7 @@ func (s systemInfo) processFile(c SystemFile, wg *sync.WaitGroup, cfg *config.Co
 		if numFiles == 1 {
 			stat, _ := os.Stat(files[0])
 			cfg.Store.AddFile(files[0], stat, fp(c.Filename))
-			l.Infof("Collected %s as %s", files[0], c.Filename)
+			l.Infof("collected %s as %s", files[0], c.Filename)
 		} else {
 			for _, file := range files {
 				fileData, _ := ioutil.ReadFile(file)
@@ -126,7 +128,7 @@ func (s systemInfo) processFile(c SystemFile, wg *sync.WaitGroup, cfg *config.Co
 				buf = append(buf, []byte("\n")...)
 			}
 			cfg.Store.AddData(fp(c.Filename), buf)
-			l.Infof("Combined contents of %v into %s", files, c.Filename)
+			l.Infof("combined contents of %v into %s", files, c.Filename)
 		}
 	}
 	wg.Done()
@@ -140,7 +142,7 @@ func (s systemInfo) processCmd(c SystemCmd, wg *sync.WaitGroup, cfg *config.Conf
 	} else {
 		fpath := filepath.Join(cfg.DiagnosticFilename(), "server_info", c.Filename)
 		cfg.Store.AddData(fpath, out)
-		l.Infof("Command completed: \"%v\" -> %s", c.RawCmd, c.Filename)
+		l.Infof("command completed: \"%v\" -> %s", c.RawCmd, c.Filename)
 	}
 	wg.Done()
 }
@@ -148,7 +150,7 @@ func (s systemInfo) processCmd(c SystemCmd, wg *sync.WaitGroup, cfg *config.Conf
 func (s systemInfo) executeCmd(c *SystemCmd) ([]byte, error) {
 	output, err := s.run(c)
 	if err != nil {
-		err = fmt.Errorf("Command failed: %s, `%v`, %s", c.Filename, c.RawCmd, err)
+		err = fmt.Errorf("command failed: %s, `%v`, %s", c.Filename, c.RawCmd, err)
 		// return output, err
 	}
 	return output, err
@@ -172,7 +174,7 @@ func (s systemInfo) checkFile(c *SystemFile) ([]string, error) {
 	if len(files) > 0 {
 		return files, nil
 	}
-	return nil, fmt.Errorf("No files found for pattern %s", c.RawFile)
+	return nil, fmt.Errorf("no files found for pattern %s", c.RawFile)
 }
 
 func (s systemInfo) writeJSON(path string, apiResp interface{}, cfg *config.Config) error {

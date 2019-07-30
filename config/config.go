@@ -53,20 +53,30 @@ func (c *Config) Initalize() {
 		panic(err)
 	}
 	c.runnerName = RunnerName
-	fmt.Printf("ECE Runner Name: %s\n", c.runnerName)
+	// fmt.Printf("ECE Runner Name: %s\n", c.runnerName)
 
 	c.diagName = "ecediag-" + c.runnerName + c.diagDate()
-
-	c.APIendpoint, err = discovery.DiscoverAPI(c.ElasticFolder, c.HTTPclient)
-	if err != nil {
-		fmt.Println("Could not determine coordinator API endpoint to use")
-		fmt.Println("\u26A0 \u26A0 \u26A0 API support data will be skipped \u26A0 \u26A0 \u26A0")
-	}
 
 	c.setupLogging()
 
 	// need logging from this point
-	c.initalizeCredentials()
+	if c.DisableRest != true {
+		c.APIendpoint, err = discovery.DiscoverAPI(c.ElasticFolder, c.HTTPclient)
+		if err != nil {
+			fmt.Println("Could not determine coordinator API endpoint to use")
+			fmt.Println("\u26A0 \u26A0 \u26A0 API support data will be skipped \u26A0 \u26A0 \u26A0")
+
+			// no endpoint to make rest calls to, skip at this point
+			c.DisableRest = true
+			return
+		}
+		c.initalizeCredentials()
+	}
+}
+
+// RunnerName runnerName
+func (c *Config) RunnerName() string {
+	return c.runnerName
 }
 
 // DiagnosticFilename will be the output filename without any extension appended

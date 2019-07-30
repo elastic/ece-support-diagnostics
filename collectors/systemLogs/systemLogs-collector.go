@@ -1,6 +1,7 @@
 package systemLogs
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,7 +24,7 @@ type File struct {
 }
 
 // Run starts file collection by walking the ElasticFolder path looking for the specified patterns.
-func Run(cfg *config.Config) {
+func Run(status chan<- string, cfg *config.Config) {
 	log := logp.NewLogger("collect-logs")
 	log.Infof("Collecting ECE log files")
 	fc := fileCollector{}
@@ -33,8 +34,15 @@ func Run(cfg *config.Config) {
 	files := Files{}
 
 	fc.findPattern(&files, cfg.ElasticFolder, elasticLogsPattern)
+
 	// fmt.Printf("%+v\n", files)
-	fc.addToTar(files, cfg)
+	err := fc.addToTar(files, cfg)
+	if err != nil {
+		status <- err.Error()
+		return
+	}
+	status <- fmt.Sprintf("\u2713 collected host logs for ECE")
+
 }
 
 func (fc fileCollector) findPattern(files *Files, path string, re *regexp.Regexp) {
@@ -55,11 +63,12 @@ func (fc fileCollector) findPattern(files *Files, path string, re *regexp.Regexp
 	}
 }
 
-func (fc fileCollector) addToTar(files Files, cfg *config.Config) {
+func (fc fileCollector) addToTar(files Files, cfg *config.Config) error {
 	l := logp.NewLogger("files")
 	clusterDiskPathRegex := regexp.MustCompile(`(.*\/services\/allocator\/containers\/)((?:elasticsearch|kibana).*)`)
 	eceDiskPathRegex := regexp.MustCompile(`(.*(?:\/services\/|bootstrap-logs\/))(.*)$`)
 
+	counter := 0
 	for _, file := range files {
 		match := clusterDiskPathRegex.FindStringSubmatch(file.filepath)
 
@@ -71,6 +80,7 @@ func (fc fileCollector) addToTar(files Files, cfg *config.Config) {
 			}
 			if fc.dateFilter(file, cfg) {
 				tarRelPath := filepath.Join(cfg.DiagnosticFilename(), match[2])
+				counter++
 				cfg.Store.AddFile(file.filepath, file.info, tarRelPath)
 				l.Infof("Adding log file: %s", match[2])
 			}
@@ -85,6 +95,7 @@ func (fc fileCollector) addToTar(files Files, cfg *config.Config) {
 				}
 				if fc.dateFilter(file, cfg) {
 					tarRelPath := filepath.Join(cfg.DiagnosticFilename(), "ece", match[2])
+					counter++
 					cfg.Store.AddFile(file.filepath, file.info, tarRelPath)
 					l.Infof("Adding log file: %s", match[2])
 				}
@@ -97,12 +108,17 @@ func (fc fileCollector) addToTar(files Files, cfg *config.Config) {
 					// This should be a catch all. This shouldn't happen.
 					l.Warnf("THIS SHOULD NOT HAPPEN, %s", file.filepath)
 					tarRelPath := filepath.Join(cfg.DiagnosticFilename(), "ece", filepath.Base(file.filepath))
+					counter++
 					cfg.Store.AddFile(file.filepath, file.info, tarRelPath)
 					l.Infof("Adding log file: %s", filepath.Base(file.filepath))
 				}
 			}
 		}
 	}
+	if counter == 0 {
+		return fmt.Errorf("\u2715 no ECE log files for host")
+	}
+	return nil
 }
 
 func (fc fileCollector) dateFilter(file File, cfg *config.Config) bool {

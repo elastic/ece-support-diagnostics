@@ -17,7 +17,6 @@ import (
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/ece-support-diagnostics/collectors/zookeeper"
 	"github.com/elastic/ece-support-diagnostics/config"
-	"github.com/elastic/ece-support-diagnostics/helpers"
 )
 
 type dockerCollector struct {
@@ -25,11 +24,14 @@ type dockerCollector struct {
 }
 
 // Run runs
-func Run(cfg *config.Config) {
+func Run(status chan<- string, cfg *config.Config) {
+
 	dock := dockerCollector{
 		re: regexp.MustCompile(`\/f[r|a]c-(\w+(?:-\w+)?)-(\w+)`),
 	}
 	dock.runDockerCmds(cfg)
+
+	status <- fmt.Sprintf("\u2713 collected Docker info and logs")
 }
 
 func (dock dockerCollector) runDockerCmds(cfg *config.Config) {
@@ -37,7 +39,6 @@ func (dock dockerCollector) runDockerCmds(cfg *config.Config) {
 	// log := logp.NewLogger("docker")
 	dockerMsg := "Collecting Docker information"
 	l.Infof(dockerMsg)
-	fmt.Println("[ ] " + dockerMsg)
 
 	const defaultDockerAPIVersion = "v1.23"
 
@@ -76,9 +77,6 @@ func (dock dockerCollector) runDockerCmds(cfg *config.Config) {
 	dock.writeJSON(fp("DockerServerVersion.json"), serverVersion, cfg)
 	// writeJSON(fp("DockerServerVersion.json"), cmd(cli.ServerVersion(ctx)), tar)
 
-	helpers.ClearStdoutLine()
-	fmt.Println("[✔] Collected Docker information")
-
 	since := cfg.StartTime.Add(-cfg.OlderThan).Format(time.RFC3339Nano)
 	l.Infof("Docker will ignore log entries older than %s", since)
 
@@ -87,16 +85,16 @@ func (dock dockerCollector) runDockerCmds(cfg *config.Config) {
 		if container.Names[0] == "/frc-zookeeper-servers-zookeeper" {
 			zookeeper.Run(container, cfg)
 			// zookeeperMNTR(container, tar)
-			fmt.Println("[✔] Collected Zookeeper data")
+
+			// fmt.Println("[✔] collected Zookeeper data")
 		}
 	}
 
-	fmt.Println("[ ] Collecting Docker logs")
+	// fmt.Println("[ ] Collecting Docker logs")
 	for _, container := range Containers {
 		dock.dockerLogs(cli, container, since, cfg)
 	}
-	helpers.ClearStdoutLine()
-	fmt.Println("[✔] Collected Docker logs")
+
 }
 
 func (dock dockerCollector) dockerLogs(cli *client.Client, container types.Container, since string, cfg *config.Config) {

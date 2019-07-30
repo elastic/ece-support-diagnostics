@@ -5,15 +5,18 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
+	collector "github.com/elastic/ece-support-diagnostics/collectors"
 	"github.com/elastic/ece-support-diagnostics/collectors/docker"
 	"github.com/elastic/ece-support-diagnostics/collectors/eceAPI"
 	"github.com/elastic/ece-support-diagnostics/collectors/eceMetrics"
 	"github.com/elastic/ece-support-diagnostics/collectors/systemInfo"
 	"github.com/elastic/ece-support-diagnostics/collectors/systemLogs"
 	"github.com/elastic/ece-support-diagnostics/config"
+	"github.com/elastic/ece-support-diagnostics/helpers"
 	"github.com/elastic/ece-support-diagnostics/store/tar"
 	"github.com/elastic/ece-support-diagnostics/uploader"
 	"github.com/spf13/cobra"
@@ -35,6 +38,7 @@ var rootCmd = &cobra.Command{
 		cfg.Initalize()
 
 		fmt.Printf("Using %s for ECE install location\n", cfg.ElasticFolder)
+		fmt.Printf("ECE Runner Name: %s\n", cfg.RunnerName())
 
 		l := logp.NewLogger("Main")
 		l.Infof("Using %s as temporary storage location", cfg.Basepath)
@@ -48,11 +52,24 @@ var rootCmd = &cobra.Command{
 		// set Store interface in the config
 		cfg.Store = tar
 
-		docker.Run(cfg)
-		eceAPI.RunECEapis(cfg)
-		systemInfo.Run(systemInfo.NewSystemCmdTasks(), systemInfo.NewSystemFileTasks(), cfg)
-		systemLogs.Run(cfg)
-		eceMetrics.Run(cfg)
+		// NEW
+		messages := make(chan string)
+		spinner := helpers.NewSpinner("%s Working...")
+		spinner.Start()
+		defer spinner.Stop()
+
+		go startCollectors(messages)
+
+		for message := range messages {
+			fmt.Println(helpers.ClearLine + message)
+		}
+		spinner.Stop()
+
+		// docker.Run(cfg)
+		// eceAPI.RunECEapis(cfg)
+		// systemInfo.Run(systemInfo.NewSystemCmdTasks(), systemInfo.NewSystemFileTasks(), cfg)
+		// systemLogs.Run(cfg)
+		// eceMetrics.Run(cfg)
 
 		logTarPath := filepath.Join(cfg.DiagnosticFilename(), "diagnostic.log")
 		tar.Finalize(cfg.DiagnosticLogFilePath(), logTarPath)
@@ -62,8 +79,30 @@ var rootCmd = &cobra.Command{
 		}
 
 		// add an empty line
-		println()
+		// println()
 	},
+}
+
+func startCollectors(returnCh chan<- string) {
+
+	var wg sync.WaitGroup
+
+	wg.Add(5)
+	go collector.StartCollector(systemLogs.Run, returnCh, cfg, &wg)
+	go collector.StartCollector(systemInfo.Run, returnCh, cfg, &wg)
+	go collector.StartCollector(eceMetrics.Run, returnCh, cfg, &wg)
+	go collector.StartCollector(docker.Run, returnCh, cfg, &wg)
+	go collector.StartCollector(eceAPI.Run, returnCh, cfg, &wg)
+
+	// docker.Run(cfg)
+	// eceAPI.RunECEapis(cfg)
+	// systemInfo.Run(systemInfo.NewSystemCmdTasks(), systemInfo.NewSystemFileTasks(), cfg)
+	// systemLogs.Run(cfg)
+	// eceMetrics.Run(cfg)
+
+	wg.Wait() // wait for all tasks
+	close(returnCh)
+
 }
 
 // Execute is the main entry point

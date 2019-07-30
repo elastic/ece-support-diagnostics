@@ -12,9 +12,13 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// RunECEapis will start collection of the ECE and elasticsearch APIs
-func RunECEapis(cfg *config.Config) {
-	fmt.Println("[ ] Collecting API information ECE and Elasticsearch")
+// Run will start collection of the ECE and elasticsearch APIs
+func Run(status chan<- string, cfg *config.Config) {
+	// fmt.Println("[ ] Collecting API information ECE and Elasticsearch")
+	if cfg.DisableRest == true {
+		status <- fmt.Sprintf("\u26A0 skipping collection of API information for ECE and Elasticsearch")
+		return
+	}
 
 	ece := helpers.TaskContext{
 		// Version: run ECEversionCheck to get the initial version
@@ -47,8 +51,10 @@ func RunECEapis(cfg *config.Config) {
 
 	}(*NewECEtasks(), ece)
 
-	helpers.ClearStdoutLine()
-	fmt.Println("[✔] Collected API information for ECE and Elasticsearch")
+	// helpers.ClearStdoutLine()
+	// fmt.Println("[✔] collected API information for ECE and Elasticsearch")
+
+	status <- fmt.Sprintf("\u2713 collected API information for ECE and Elasticsearch")
 }
 
 // ECEesClusters is only used for Callback purposes

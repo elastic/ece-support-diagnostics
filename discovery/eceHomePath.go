@@ -19,7 +19,9 @@ func CheckStoragePath(eceInstallPath string) (string, error) {
 	//  to determine if /mnt/data/elastic is the correct path.
 
 	sp := filepath.Join(eceInstallPath, "*/services/runners/containers/docker/")
-	fmt.Printf("Checking the ECE install path, %s\n", sp)
+
+	// fmt.Printf("Checking the ECE install path, %s\n", sp)
+
 	installPaths, err := filepath.Glob(sp)
 	if err != nil {
 		log.Fatal(err)
