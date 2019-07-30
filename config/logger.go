@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/elastic/beats/libbeat/logp"
@@ -26,4 +27,6 @@ func (c *Config) setupLogging() {
 		},
 	}
 	logp.Configure(config)
+
+	fmt.Printf("Log file: %s\n", c.DiagnosticLogFilePath())
 }

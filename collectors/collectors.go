@@ -34,9 +34,9 @@ func StartCollector(fn interface{}, messageCh chan<- string, cfg *config.Config,
 	select {
 	case <-ctx.Done():
 		funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
-		messageCh <- fmt.Sprintf("\u2715 %s, canceled by %s timeout, took: %s", funcName, timeout, time.Since(start))
+		messageCh <- fmt.Sprintf("\u2715 %s, canceled by %s timeout (took: %s)", funcName, timeout, time.Since(start))
 	case res := <-ch:
-		messageCh <- fmt.Sprintf("%s, took: %s", res, time.Since(start))
+		messageCh <- fmt.Sprintf("%s (took: %s)", res, time.Since(start))
 	}
 
 	wg.Done()

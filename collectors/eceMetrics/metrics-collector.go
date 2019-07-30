@@ -131,18 +131,31 @@ type stat struct {
 func (m metricsCollector) doScroll(es *elasticsearch.Client, cfg *config.Config) {
 	log := logp.NewLogger("MetricScroll")
 
-	// TODO: filter all event.dataset: `system.process` (keyword, single term)
+	// TODO: make filter for event.dataset: `system.process` (keyword) optional
 
 	query := `{
 		"size": 5000,
-		"sort": [{"@timestamp": {"order": "desc"}}], 
+		"sort": [
+		  { "@timestamp": { "order": "desc" }}
+		],
 		"query": {
 		  "bool": {
-			"filter": {
-			  "range": {
-				"@timestamp": {"gte": "now-72h"}
+			"filter": [
+			  { "range": { "@timestamp": { "gte": "now-72h" }}},
+			  {
+				"bool": {
+				  "must_not": [
+					{
+					  "term": {
+						"event.dataset": {
+						  "value": "system.process"
+						}
+					  }
+					}
+				  ]
+				}
 			  }
-			}
+			]
 		  }
 		}
 	  }`

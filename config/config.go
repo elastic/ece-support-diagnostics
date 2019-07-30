@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -70,7 +71,23 @@ func (c *Config) Initalize() {
 			c.DisableRest = true
 			return
 		}
-		c.initalizeCredentials()
+		err := c.initalizeCredentials()
+		if err != nil {
+			fmt.Printf("\u26A0 \u26A0 \u26A0 %s \u26A0 \u26A0 \u26A0\n", err.Error())
+
+			fmt.Printf(`
+/******************************************************/
+/* If you are having trouble authenticating, you can  */ 
+/* skip collection of the API based support data by   */
+/* using the --disableRest flag. Please understand    */
+/* this will severely limit Elastic Support's ability */
+/* to provide timely help.                            */
+/******************************************************/
+`)
+
+			// TODO: Need to safely exit and cleanup files
+			os.Exit(1)
+		}
 	}
 }
 

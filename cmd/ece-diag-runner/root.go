@@ -38,7 +38,7 @@ var rootCmd = &cobra.Command{
 		cfg.Initalize()
 
 		fmt.Printf("Using %s for ECE install location\n", cfg.ElasticFolder)
-		fmt.Printf("ECE Runner Name: %s\n", cfg.RunnerName())
+		fmt.Printf("\tECE Runner Name: %s\n", cfg.RunnerName())
 
 		l := logp.NewLogger("Main")
 		l.Infof("Using %s as temporary storage location", cfg.Basepath)
@@ -152,9 +152,9 @@ func init() {
 	)
 	rootCmd.PersistentFlags().BoolVar(
 		&cfg.DisableRest,
-		"disableRest",
+		"disableApiCalls",
 		false,
-		"Disable Rest calls",
+		"Disable API calls",
 	)
 	rootCmd.PersistentFlags().StringVarP(
 		&cfg.UploadUID,

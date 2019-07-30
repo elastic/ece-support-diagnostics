@@ -77,6 +77,8 @@ func (tw *Tarball) Finalize(logfilePath, tarRelPath string) {
 	tw.AddFile(logfilePath, fileInfo, tarRelPath)
 	tw.Close()
 
+	fmt.Printf("Finished creating file: %s\n", tw.Filepath())
+
 	// helpers.ClearStdoutLine()
 	// fmt.Println("[✔] Finished" + msgClosingTar)
 }
