@@ -41,6 +41,8 @@ func (zk zooCollector) zookeeperMNTR(container types.Container, cfg *config.Conf
 	ip := container.NetworkSettings.Networks["bridge"].Gateway
 
 	portString := fmt.Sprintf("%d", port)
+
+	// TODO: netcat should not be necessary for this.
 	cmd := exec.Command("nc", ip, portString)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

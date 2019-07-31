@@ -1,65 +1,72 @@
 package systemLogs
 
-// func TestFile_zeroByteCheck(t *testing.T) {
+import (
+	"io/ioutil"
+	"log"
+	"os"
+	"testing"
+)
 
-// 	content := []byte("")
-// 	emptyTmpFile, err := ioutil.TempFile("", "testemptyfile")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+func TestFile_zeroByteCheck(t *testing.T) {
 
-// 	fullTmpFile, err := ioutil.TempFile("", "testfullfile")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+	content := []byte("")
+	emptyTmpFile, err := ioutil.TempFile("", "testemptyfile")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// 	defer os.Remove(emptyTmpFile.Name()) // clean up
-// 	defer os.Remove(fullTmpFile.Name())  // clean up
+	fullTmpFile, err := ioutil.TempFile("", "testfullfile")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// 	if _, err := emptyTmpFile.Write(content); err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	content = []byte("hello world")
-// 	if _, err := fullTmpFile.Write(content); err != nil {
-// 		log.Fatal(err)
-// 	}
+	defer os.Remove(emptyTmpFile.Name()) // clean up
+	defer os.Remove(fullTmpFile.Name())  // clean up
 
-// 	emptyStat, _ := emptyTmpFile.Stat()
-// 	fullStat, _ := fullTmpFile.Stat()
+	if _, err := emptyTmpFile.Write(content); err != nil {
+		log.Fatal(err)
+	}
+	content = []byte("hello world")
+	if _, err := fullTmpFile.Write(content); err != nil {
+		log.Fatal(err)
+	}
 
-// 	empty := File{
-// 		info:     emptyStat,
-// 		filepath: emptyTmpFile.Name(),
-// 	}
-// 	file := File{
-// 		info:     fullStat,
-// 		filepath: fullTmpFile.Name(),
-// 	}
+	emptyStat, _ := emptyTmpFile.Stat()
+	fullStat, _ := fullTmpFile.Stat()
 
-// 	tests := []struct {
-// 		name string
-// 		file File
-// 		want bool
-// 	}{
-// 		{
-// 			name: "0 byte file",
-// 			file: empty,
-// 			want: true,
-// 		},
-// 		{
-// 			name: "file with bytes",
-// 			file: file,
-// 			want: false,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			if got := tt.file.zeroByteCheck(tt.name); got != tt.want {
-// 				t.Errorf("File.zeroByteCheck() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
+	empty := File{
+		info:     emptyStat,
+		filepath: emptyTmpFile.Name(),
+	}
+	file := File{
+		info:     fullStat,
+		filepath: fullTmpFile.Name(),
+	}
+
+	tests := []struct {
+		name string
+		file File
+		want bool
+	}{
+		{
+			name: "0 byte file",
+			file: empty,
+			want: true,
+		},
+		{
+			name: "file with bytes",
+			file: file,
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.file.zeroByteCheck(tt.name); got != tt.want {
+				t.Errorf("File.zeroByteCheck() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 // func TestFiles_findPattern(t *testing.T) {
 

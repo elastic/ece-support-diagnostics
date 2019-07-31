@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/elastic/beats/libbeat/logp"
-	"github.com/elastic/ece-support-diagnostics/helpers"
 )
 
 // Tarball provides a wrapper for the tar/gz writers, and a mutex lock to call for thread safety
@@ -72,14 +71,15 @@ func (tw *Tarball) Finalize(logfilePath, tarRelPath string) {
 	// fmt.Println("[ ] Finalizing" + msgClosingTar)
 
 	fileInfo, err := os.Stat(logfilePath)
-	helpers.PanicError(err)
+	if err != nil {
+		panic(err)
+	}
 
 	tw.AddFile(logfilePath, fileInfo, tarRelPath)
 	tw.Close()
 
 	fmt.Printf("Finished creating file: %s\n", tw.Filepath())
 
-	// helpers.ClearStdoutLine()
 	// fmt.Println("[✔] Finished" + msgClosingTar)
 }
 

@@ -44,7 +44,9 @@ func (c *Config) initalizeCredentials() error {
 	resp, err := c.HTTPclient.Do(req)
 
 	// auth failed? retry?
-	helpers.PanicError(err)
+	if err != nil {
+		panic(err)
+	}
 
 	if resp.StatusCode == 200 || resp.StatusCode == 400 {
 		for i := 0; i <= 2; i++ {
@@ -83,7 +85,9 @@ func (c *Config) checkForPassword() {
 func promptForPassword() string {
 	fmt.Print("Enter Password: ")
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
-	helpers.PanicError(err)
+	if err != nil {
+		panic(err)
+	}
 	password := string(bytePassword)
 	return password
 }
@@ -98,7 +102,9 @@ func credsFromCmdPrompt() (usr, pass string) {
 	// fmt.Println("Username (read-only)")
 	fmt.Print("Enter Password: ")
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
-	helpers.PanicError(err)
+	if err != nil {
+		panic(err)
+	}
 	// if err == nil {fmt.Println("\nPassword typed: " + string(bytePassword))}
 	password := string(bytePassword)
 	return strings.TrimSpace(username), strings.TrimSpace(password)

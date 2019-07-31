@@ -4,18 +4,11 @@ import (
 	"fmt"
 )
 
-// PanicError - progress over perfection, but sometimes you just need to panic!
-func PanicError(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-// ClearStdoutLine clear previous stdout line
-func ClearStdoutLine() {
-	fmt.Printf("\033[F") // back to previous line
-	fmt.Printf("\033[K") // clear line
-}
+// // ClearStdoutLine clear previous stdout line
+// func ClearStdoutLine() {
+// 	fmt.Printf("\033[F") // back to previous line
+// 	fmt.Printf("\033[K") // clear line
+// }
 
 // ByteCountDecimal provides a human string for storage based on 1000
 func ByteCountDecimal(b int64) string {

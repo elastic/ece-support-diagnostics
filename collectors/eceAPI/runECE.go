@@ -51,7 +51,6 @@ func Run(status chan<- string, cfg *config.Config) {
 
 	}(*NewECEtasks(), ece)
 
-	// helpers.ClearStdoutLine()
 	// fmt.Println("[✔] collected API information for ECE and Elasticsearch")
 
 	status <- fmt.Sprintf("\u2713 collected API information for ECE and Elasticsearch")
