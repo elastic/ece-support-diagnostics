@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -23,8 +24,9 @@ import (
 )
 
 var (
-	cfg       *config.Config
-	olderThan string
+	cfg        *config.Config
+	olderThan  string
+	cpuprofile string
 )
 
 var rootCmd = &cobra.Command{
@@ -34,6 +36,18 @@ var rootCmd = &cobra.Command{
 				  love by spf13 and friends in Go.
 				  Complete documentation is available at http://hugo.spf13.com`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if cpuprofile != "" {
+			f, err := os.Create(cpuprofile)
+			if err != nil {
+				log.Fatal("could not create CPU profile: ", err)
+			}
+			defer f.Close()
+			if err := pprof.StartCPUProfile(f); err != nil {
+				log.Fatal("could not start CPU profile: ", err)
+			}
+			defer pprof.StopCPUProfile()
+		}
+
 		// fmt.Printf("%+v\n", cfg)
 		cfg.Initalize()
 
@@ -52,8 +66,8 @@ var rootCmd = &cobra.Command{
 		// set Store interface in the config
 		cfg.Store = tar
 
-		// NEW
-		messages := make(chan string)
+		messages := make(chan string) // channel used to print status from each of collectors
+
 		spinner := helpers.NewSpinner("%s Working...")
 		spinner.Start()
 		defer spinner.Stop()
@@ -65,21 +79,12 @@ var rootCmd = &cobra.Command{
 		}
 		spinner.Stop()
 
-		// docker.Run(cfg)
-		// eceAPI.RunECEapis(cfg)
-		// systemInfo.Run(systemInfo.NewSystemCmdTasks(), systemInfo.NewSystemFileTasks(), cfg)
-		// systemLogs.Run(cfg)
-		// eceMetrics.Run(cfg)
-
 		logTarPath := filepath.Join(cfg.DiagnosticFilename(), "diagnostic.log")
 		tar.Finalize(cfg.DiagnosticLogFilePath(), logTarPath)
 
 		if cfg.UploadUID != "" {
 			uploader.RunUpload(tar.Filepath(), cfg.UploadUID)
 		}
-
-		// add an empty line
-		// println()
 	},
 }
 
@@ -94,14 +99,8 @@ func startCollectors(returnCh chan<- string) {
 	go collector.StartCollector(docker.Run, returnCh, cfg, &wg)
 	go collector.StartCollector(eceAPI.Run, returnCh, cfg, &wg)
 
-	// docker.Run(cfg)
-	// eceAPI.RunECEapis(cfg)
-	// systemInfo.Run(systemInfo.NewSystemCmdTasks(), systemInfo.NewSystemFileTasks(), cfg)
-	// systemLogs.Run(cfg)
-	// eceMetrics.Run(cfg)
-
-	wg.Wait() // wait for all tasks
-	close(returnCh)
+	wg.Wait()       // wait for all tasks
+	close(returnCh) // printing each item using range over the channel. Closing to end range.
 
 }
 
@@ -163,6 +162,8 @@ func init() {
 		"",
 		"Elastic Upload ID",
 	)
+	rootCmd.Flags().StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to `file`")
+	rootCmd.Flags().MarkHidden("cpuprofile")
 }
 
 func initConfig() {
