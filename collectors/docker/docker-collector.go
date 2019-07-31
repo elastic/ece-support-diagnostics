@@ -69,8 +69,8 @@ func (dock dockerCollector) runDockerCmds(cfg *config.Config) {
 	dock.writeJSON(fp("DockerInfo.json"), info, cfg)
 	// writeJSON(fp("DockerInfo.json"), cmd(cli.Info(ctx)), tar)
 
-	diskUsage, _ := cli.DiskUsage(ctx)
-	dock.writeJSON(fp("DockerDiskUsage.json"), diskUsage, cfg)
+	// diskUsage, _ := cli.DiskUsage(ctx)
+	// dock.writeJSON(fp("DockerDiskUsage.json"), diskUsage, cfg)
 	// writeJSON(fp("DockerDiskUsage.json"), cmd(cli.DiskUsage(ctx)), tar)
 
 	serverVersion, _ := cli.ServerVersion(ctx)
