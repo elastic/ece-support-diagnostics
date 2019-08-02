@@ -18,13 +18,3 @@ var versionCmd = &cobra.Command{
 		fmt.Println(VERSION)
 	},
 }
-
-// var byeCmd = &cobra.Command{
-// 	Use:   "bye",
-// 	Short: "says bye",
-// 	Long:  `This subcommand says bye`,
-// 	Run: func(cmd *cobra.Command, args []string) {
-// 		fmt.Println("bye called")
-// 		fmt.Printf("%+v\n", cmd)
-// 	},
-// }
