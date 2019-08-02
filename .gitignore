@@ -1,6 +1,4 @@
-ece-support-diagnostics
-ece-support-diagnostics.zip
-cmd/ece-diagnostic-runner/ece-diagnostic-runner
+dist/*
 
 *.tar.gz
 tmp/
