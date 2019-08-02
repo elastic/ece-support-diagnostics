@@ -18,7 +18,7 @@ var byeCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(byeCmd)
+	// rootCmd.AddCommand(byeCmd)
 
 	// Here you will define your flags and configuration settings.
 

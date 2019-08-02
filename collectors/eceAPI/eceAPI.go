@@ -14,6 +14,10 @@ func NewECEversionTask() helpers.Task {
 func NewECEtasks() *helpers.Tasks {
 	return &helpers.Tasks{
 		helpers.Task{
+			Filename: "ece/zookeeper.json",
+			Uri:      "/api/v0.1/regions/ece-region/zookeeper",
+		},
+		helpers.Task{
 			Filename: "ece/allocators.json",
 			Uri:      "/api/v1/platform/infrastructure/allocators",
 		},

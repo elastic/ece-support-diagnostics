@@ -50,7 +50,7 @@ func CheckStoragePath(eceInstallPath string) (string, error) {
 		// fmt.Printf("Discovered: %v\n", ContainerSets)
 		return runnerName, nil
 	}
-	return "", fmt.Errorf("could not find a valid ECE install location")
+	return "", fmt.Errorf("Failed to find ECE install at %s", eceInstallPath)
 }
 
 // /mnt/data/elastic/172.16.0.10/services/

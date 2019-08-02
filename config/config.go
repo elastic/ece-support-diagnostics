@@ -50,8 +50,14 @@ func New() *Config {
 func (c *Config) Initalize() {
 	RunnerName, err := discovery.CheckStoragePath(c.ElasticFolder)
 	if err != nil {
-		fmt.Println("Could not find the ECE home / install folder")
-		panic(err)
+		fmt.Println(err.Error())
+		fmt.Println(`
+	please set the -f, --eceHomeFolder argument to the appropriate 
+	folder path where ECE is installed, or check that the user 
+	running this diagnostic utility has the appropriate permissions 
+	to that location
+		`)
+		os.Exit(1)
 	}
 	c.runnerName = RunnerName
 	// fmt.Printf("ECE Runner Name: %s\n", c.runnerName)
@@ -71,10 +77,13 @@ func (c *Config) Initalize() {
 			c.DisableRest = true
 			return
 		}
+		// fmt.Printf(helpers.PreviousLine)
+		fmt.Println("Using", c.APIendpoint, "for API calls")
+
 		err := c.initalizeCredentials()
 		if err != nil {
-			fmt.Printf("\u26A0 \u26A0 \u26A0 %s \u26A0 \u26A0 \u26A0\n", err.Error())
-
+			// fmt.Printf("\n\u26A0  \u26A0  \u26A0    %s    \u26A0  \u26A0  \u26A0\n", err.Error())
+			fmt.Printf("\n⚠  ⚠  ⚠  ⚠  ⚠    %s    ⚠  ⚠  ⚠  ⚠  ⚠\n", err.Error())
 			fmt.Printf(`
 /******************************************************/
 /* If you are having trouble authenticating, you can  */ 
@@ -83,6 +92,7 @@ func (c *Config) Initalize() {
 /* this will severely limit Elastic Support's ability */
 /* to provide timely help.                            */
 /******************************************************/
+
 `)
 
 			// TODO: Need to safely exit and cleanup files

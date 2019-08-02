@@ -56,7 +56,7 @@ func createNewTar(tarballFilePath string) (*Tarball, error) {
 	t.gzip = gzip.NewWriter(file)
 	t.tar = tar.NewWriter(t.gzip)
 
-	fmt.Printf("Created tar output: %s\n", t.Filepath())
+	fmt.Printf("++ Created tar output: %s\n", t.Filepath())
 	return t, nil
 }
 
@@ -68,8 +68,6 @@ func (tw *Tarball) Finalize(logfilePath, tarRelPath string) {
 	msgClosingTar := fmt.Sprintf(" the tar: %s", tw.Filepath())
 	l.Infof("Finalizing %s", msgClosingTar)
 
-	// fmt.Println("[ ] Finalizing" + msgClosingTar)
-
 	fileInfo, err := os.Stat(logfilePath)
 	if err != nil {
 		panic(err)
@@ -78,9 +76,6 @@ func (tw *Tarball) Finalize(logfilePath, tarRelPath string) {
 	tw.AddFile(logfilePath, fileInfo, tarRelPath)
 	tw.Close()
 
-	fmt.Printf("Finished creating file: %s\n", tw.Filepath())
-
-	// fmt.Println("[✔] Finished" + msgClosingTar)
 }
 
 // AddData is for adding byte data directly to the tar file

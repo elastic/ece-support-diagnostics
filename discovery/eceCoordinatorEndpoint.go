@@ -43,7 +43,7 @@ func DiscoverAPI(installFolder string, r *http.Client) (string, error) {
 
 			// DEBUG: println(publicHostname)
 
-			println("Checking connection:", publicHostname)
+			fmt.Println("Checking connection:", publicHostname)
 			// Check if :12443/api/v1 can be reached
 			endpoint, err = checkEndpoint(r, publicHostname)
 			if err != nil {
@@ -58,10 +58,9 @@ func DiscoverAPI(installFolder string, r *http.Client) (string, error) {
 		})
 
 		if endpoint != "" {
-			fmt.Println(endpoint)
 			return endpoint, nil
 		}
-		// fmt.Println(err)
+
 		return "", err
 	}
 

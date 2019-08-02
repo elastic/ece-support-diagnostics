@@ -38,8 +38,6 @@ func (c *Config) initalizeCredentials() error {
 		// need to understand if there is any risk of an error in creating the http request?
 	}
 
-	fmt.Println()
-
 	req.SetBasicAuth(c.Auth.User, c.Auth.Pass)
 	resp, err := c.HTTPclient.Do(req)
 
@@ -49,13 +47,7 @@ func (c *Config) initalizeCredentials() error {
 	}
 
 	if resp.StatusCode == 200 || resp.StatusCode == 400 {
-		for i := 0; i <= 2; i++ {
-			helpers.ClearStdoutLine()
-		}
-		fmt.Printf("Authenticated\n")
-		fmt.Printf("\t✔ Username (%s)\n", c.Auth.User)
-		fmt.Printf("\t✔ Password\n")
-
+		fmt.Printf("\t✔ Authenticated (%s)\n", c.Auth.User)
 		log.Infof("Cloud UI Resolved, using %s", req.URL)
 		return nil
 	}
@@ -89,24 +81,44 @@ func promptForPassword() string {
 		panic(err)
 	}
 	password := string(bytePassword)
+
+	// add line return after reading the password
+	fmt.Printf("\n")
+
+	// clear back 1 line
+	fmt.Printf(helpers.PreviousLine)
+	fmt.Printf(helpers.ClearLine)
+
 	return password
 }
 
 // getCredentials is used for securely prompting for a password from stdin
 //  it uses the x/crypto/ssh/terminal package to ensure stdin echo is disabled
 func credsFromCmdPrompt() (usr, pass string) {
+	count := 0
 	fmt.Println("Please Enter Your ECE Admin Credentials")
+	count++
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter Username: ")
+	count++
 	username, _ := reader.ReadString('\n')
 	// fmt.Println("Username (read-only)")
 	fmt.Print("Enter Password: ")
+	count++
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
 	if err != nil {
 		panic(err)
 	}
 	// if err == nil {fmt.Println("\nPassword typed: " + string(bytePassword))}
 	password := string(bytePassword)
+
+	// add line return after reading the password
+	fmt.Printf("\n")
+
+	for i := 1; i <= count; i++ {
+		fmt.Printf(helpers.PreviousLine)
+		fmt.Printf(helpers.ClearLine)
+	}
 	return strings.TrimSpace(username), strings.TrimSpace(password)
 	// return "readonly", strings.TrimSpace(password)
 }

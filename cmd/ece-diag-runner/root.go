@@ -32,9 +32,9 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "ece-diag-runner",
 	Short: "ece-diag-runner collects support data for an ECE deployment",
-	Long: `A Fast and Flexible Static Site Generator built with
-				  love by spf13 and friends in Go.
-				  Complete documentation is available at http://hugo.spf13.com`,
+	// Long: `A Fast and Flexible Static Site Generator built with
+	// 			  love by spf13 and friends in Go.
+	// 			  Complete documentation is available at http://hugo.spf13.com`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if cpuprofile != "" {
 			f, err := os.Create(cpuprofile)
@@ -81,6 +81,11 @@ var rootCmd = &cobra.Command{
 
 		logTarPath := filepath.Join(cfg.DiagnosticFilename(), "diagnostic.log")
 		tar.Finalize(cfg.DiagnosticLogFilePath(), logTarPath)
+
+		fmt.Printf("Finished creating file: %s (total: %s)\n",
+			cfg.DiagnosticTarFilePath(),
+			time.Since(cfg.StartTime).Truncate(time.Millisecond),
+		)
 
 		if cfg.UploadUID != "" {
 			uploader.RunUpload(tar.Filepath(), cfg.UploadUID)
