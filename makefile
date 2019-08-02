@@ -1,3 +1,10 @@
+# These will be provided to the target
+VERSION := 0.1.0
+BUILD := `git rev-parse HEAD`
+
+# Use linker flags to provide version/build settings to the target
+LDFLAGS=-ldflags "-s -w -X=main.Version=$(VERSION) -X=main.Build=$(BUILD)"
+
 # Go parameters
 GOCMD=go
 GOBUILD=$(GOCMD) build
@@ -9,7 +16,7 @@ BINARY_UNIX=dist/linux/$(BINARY_NAME)
 
 all: test build
 build: 
-		$(GOBUILD) -o $(BINARY_NAME) -v
+		$(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME) -v
 test: 
 		$(GOTEST) -v ./...
 clean: 
@@ -26,6 +33,6 @@ run:
 
 # Cross compilation
 build-linux:
-		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_UNIX) -v -ldflags="-s -w"
+		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_UNIX) -v
 # docker-build:
 #         docker run --rm -it -v "$(GOPATH)":/go -w /go/src/bitbucket.org/rsohlich/makepost golang:latest go build -o "$(BINARY_UNIX)" -v

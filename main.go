@@ -1,7 +1,15 @@
 package main
 
-import cmd "github.com/elastic/ece-support-diagnostics/cmd/ece-diag-runner"
+import (
+	"fmt"
+
+	cmd "github.com/elastic/ece-support-diagnostics/cmd/ece-support-diagnostics"
+)
+
+var Version string
+var Build string
 
 func main() {
-	cmd.Execute()
+	fullVersion := fmt.Sprintf("%s (%s)", Version, Build)
+	cmd.Execute(fullVersion)
 }
