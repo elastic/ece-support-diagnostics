@@ -1,3 +1,6 @@
+limit to specific clusters
+check docker to determine the storage path
 Cancel docker collection properly when docker can't be reached
+limit rolled over file (eg. 10mb) count, concatenate larger files?
 
-Add interface stats from netstat or ss
+Add interface stats from netstat or ss?
