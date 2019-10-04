@@ -20,7 +20,7 @@ import (
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/ece-support-diagnostics/config"
 	"github.com/elastic/ece-support-diagnostics/helpers"
-	elasticsearch "github.com/elastic/go-elasticsearch"
+	elasticsearch "github.com/elastic/go-elasticsearch/v6"
 	"github.com/elastic/go-elasticsearch/esapi"
 	"github.com/tidwall/gjson"
 )
