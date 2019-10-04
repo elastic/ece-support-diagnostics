@@ -150,7 +150,7 @@ func init() {
 
 	cfg = config.New()
 
-	rootCmd.PersistentFlags().StringVarP(
+	rootCmd.Flags().StringVarP(
 		&cfg.Auth.User,
 		"username",
 		"u",
@@ -188,7 +188,7 @@ func init() {
 		false,
 		"Disable API calls",
 	)
-	rootCmd.PersistentFlags().StringVarP(
+	rootCmd.Flags().StringVarP(
 		&cfg.UploadUID,
 		"uploadID",
 		"U",
