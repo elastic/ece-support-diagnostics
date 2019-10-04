@@ -2,9 +2,10 @@ package zookeeper
 
 import (
 	"fmt"
-	"io"
-	"os/exec"
+	"io/ioutil"
+	"net"
 	"path/filepath"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/elastic/beats/libbeat/logp"
@@ -40,25 +41,16 @@ func (zk zooCollector) zookeeperMNTR(container types.Container, cfg *config.Conf
 
 	ip := container.NetworkSettings.Networks["bridge"].Gateway
 
-	portString := fmt.Sprintf("%d", port)
-
-	// TODO: netcat should not be necessary for this.
-	cmd := exec.Command("nc", ip, portString)
-	stdin, err := cmd.StdinPipe()
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip, port), 8*time.Second)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("dial error:", err)
+		return
 	}
-
-	go func() {
-		defer stdin.Close()
-		io.WriteString(stdin, "mntr")
-	}()
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Fatalf("It didn't work:\n%s\n%s", err, out)
-	}
+	defer conn.Close()
+	fmt.Fprintf(conn, "mntr\n")
+	resp, _ := ioutil.ReadAll(conn)
 
 	fpath := filepath.Join(cfg.DiagnosticFilename(), "ece", "zookeeper_mntr.txt")
-	cfg.Store.AddData(fpath, out)
+	cfg.Store.AddData(fpath, resp)
+
 }
