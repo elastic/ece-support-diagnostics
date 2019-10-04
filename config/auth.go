@@ -3,6 +3,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -39,6 +40,8 @@ func (c *Config) initalizeCredentials() error {
 	}
 
 	req.SetBasicAuth(c.Auth.User, c.Auth.Pass)
+	// fmt.Printf("user --%s--, pass: --%s--", c.User, c.Pass)
+
 	resp, err := c.HTTPclient.Do(req)
 
 	// auth failed? retry?
@@ -54,24 +57,24 @@ func (c *Config) initalizeCredentials() error {
 
 	// TODO: write license response to file?
 
+	fmt.Println(resp.StatusCode)
+	stuff, _ := ioutil.ReadAll(resp.Body)
+	fmt.Printf("%s\n", stuff)
+
 	return fmt.Errorf("Authentication failed")
 }
 
 func (c *Config) checkForPassword() {
-	if c.Auth.User != "" {
-		// Split the username if it contains a `:`
-		auth := strings.SplitN(c.Auth.User, ":", 2)
-		if len(auth) == 2 {
-			c.Auth.User = auth[0]
-			c.Auth.Pass = auth[1]
-		} else {
-			// Only the username was specified
-			c.Auth.Pass = promptForPassword()
-		}
-	} else {
+	if c.Auth.User == "" && c.Auth.Pass == "" {
 		// no username flag invoked, need user & pass
 		c.Auth.User, c.Auth.Pass = credsFromCmdPrompt()
+	} else if c.Auth.Pass == "" {
+		// Only the username was specified
+		c.Auth.Pass = promptForPassword()
 	}
+	// } else {
+	// 	fmt.Printf("user --%s--, pass: --%s--", c.User, c.Pass)
+	// }
 }
 
 func promptForPassword() string {
