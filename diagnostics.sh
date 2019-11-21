@@ -152,7 +152,7 @@ get_system(){
 			print_msg "'sar' command not found. Please install package 'sysstat' to collect extended system stats" "WARN"
 	fi
 	print_msg "Grabbing ECE logs" "INFO"
-	cd $storage_path && find . -type f -name *.log -mmin -4320 -exec cp --parents \{\} $elastic_folder \;
+	cd $storage_path && find . -type f -name "*.log" -mmin -4320 -exec cp --parents \{\} $elastic_folder \;
 	print_msg "Checking XFS info" "INFO"
 	[[ -x "$(type -P xfs_info)" ]] && xfs_info $storage_path > $elastic_folder/xfs_info.txt 2>&1
 }
