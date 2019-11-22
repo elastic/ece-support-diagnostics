@@ -39,9 +39,9 @@ create_folders(){
 			cluster_info)
 			mkdir -p $docker_folder/cluster_info/
 			;;
-                        zookeeper)
-                        mkdir -p $zookeeper_folder
-                        ;;    
+			zookeeper)
+			mkdir -p $zookeeper_folder
+			;;
             		--) # End of all options.
             		shift
 			break
@@ -89,9 +89,9 @@ show_help(){
 	echo "-x|--port <port> #Specifies ECE port (default:12400)"
 	echo "-s|--system #collects elastic logs and system information"
 	echo "-d|--docker #collects docker information"
-        echo "-zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents"
-        echo "-zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)"
-        echo "-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, coma separated list of sub-trees to exclude in the bundle"
+	echo "-zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents"
+	echo "-zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)"
+	echo "-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, coma separated list of sub-trees to exclude in the bundle"
 	echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
 	echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
 	echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster"
@@ -235,7 +235,7 @@ get_zookeeper(){
         if [ -n "$2" ]
                 #Path for sub-tree root has been passed
                 then
-                        root_node=$2
+                    	root_node=$2
         fi
 
         if [ -n "$3" ]
@@ -259,7 +259,7 @@ get_zookeeper(){
         #Cipher dump file and remove the one in clear text
 
         # gpg2 --recipient-file $public_key_path -e $zookeeper_folder/zkdump.zip #Ideally we'd use this but it requires a version not so ubiquitous.
-        encrypt_file $public_key_path $zookeeper_folder/zkdump.zip
+        encrypt_file $public_key_path $zookeeper_folder/zkdump.zip;
         encryption_result=$?
         
         rm $zookeeper_folder/zkdump.zip
