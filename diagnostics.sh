@@ -91,7 +91,7 @@ show_help(){
 	echo "-d|--docker #collects docker information"
 	echo "-zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents"
 	echo "-zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)"
-	echo "-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, coma separated list of sub-trees to exclude in the bundle"
+	echo "-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle"
 	echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
 	echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
 	echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster"

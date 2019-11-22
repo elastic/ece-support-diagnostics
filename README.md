@@ -31,7 +31,7 @@ Options:
 -d|--docker #collects docker information
 -zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents
 -zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)
--zk-excluded|--zookeeper-excluded <excluded_paths> #optional, coma separated list of sub-trees to exclude in the bundle
+-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle
 -sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system
 -o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)
 -c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster
