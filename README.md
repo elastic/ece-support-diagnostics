@@ -29,6 +29,9 @@ Options:
 -x|--port <port> #Specifies ECE port (default:12400)
 -s|--system #collects elastic logs and system information
 -d|--docker #collects docker information
+-zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents
+-zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)
+-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, coma separated list of sub-trees to exclude in the bundle
 -sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system
 -o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)
 -c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster
@@ -57,6 +60,34 @@ The standard basic set of information (system and docker level) can be gathered 
 ```
 ./diagnostics.sh -d -s
 ```
+
+### Including Zookeeper contents for deep analysis
+Some investigations require to have low level ECE details (stored in Zookeeper) at hand. It is possible to include this information in the bundle using:
+
+```
+-zk|--zookeeper <path_to_dest_pgp_public_key>
+```
+
+This option will enable the inclusion of a complete dump of the cluster's ZK ensemble contents into the generated bundle.
+
+This behavior can be constrained so the bundle:
+
+- Would include just the contents of a concrete ZK sub-tree, e.g: (just the contents under `/kibanas`) 
+```bash
+./diagnostics.sh -zk ./support.key.pub -zk-path '/kibanas'
+```
+- Exclude certain paths:
+```bash
+./diagnostics.sh -zk ./support.key.pub -zk-excluded '/zookeeper,/locks'
+```
+- Or both:
+```bash
+./diagnostics.sh -zk ./support.key.pub -zk-excluded '/container_sets/cloud-uis,/container_sets/zookeeper-servers' -zk-path '/container_sets'
+```
+
+**Note**: How the list of excluded trees is a comma separated list of ZK paths.
+
+:warning: Eagle-eyed readers have probably noticed that this functionality **requires a PGP public key**. ECE Zookeeper contents contain potentially secret and/or sensitive information. For this reason, the bundle **will never contain ZK contents in clear text**. The output will contain a PGP encrypted file which can only be read by the owner of the private key counterpart for the provided key.
 
 ### Using a custom storage path
 If you've installed ECE using a STORAGE_PATH different than default (`/mnt/data/elastic`), please make sure to pass the below flag to the diagnostics script:
