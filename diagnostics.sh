@@ -245,10 +245,16 @@ get_zookeeper(){
                         excluded_nodes=","
         fi
 
-        #Collect result at $zookeeper_folder/zkdump.zip
+        # Note that this is the directory (simbling to $elastic_folder) which will contain the clear temporary
+        # ZK bundle in clear text prior to encryption. It will be deleted automatically.
+        zookeeper_cleartext_folder=$(mktemp -d $elastic_folder/../zookeeper_dump_temporary.XXXX)
+
+        #Collect result at $zookeeper_cleartext_folder/zkdump.zip
+        #This is done outside the bundle directory to avoid accidental inclusion of
+        #ZK contents in clear text within the bundle.
 
         docker run --env SHELL_JAVA_OPTIONS="-Dfound.shell.exec=/elastic_cloud_apps/shell/scripts/dumpZkContents.sc -Dfound.shell.exec-params=pathsToSkip=$excluded_nodes;rootPath=$root_node;outputPath=/target/zkdump.zip" \
-               -v $zookeeper_folder:/target -v ~/.found-shell:/elastic_cloud_apps/shell/.found-shell \
+               -v $zookeeper_cleartext_folder:/target -v ~/.found-shell:/elastic_cloud_apps/shell/.found-shell \
                --env SHELL_ZK_AUTH=$(docker exec -it frc-directors-director bash -c 'echo -n $FOUND_ZK_READWRITE') \
                $(docker inspect -f '{{ range .HostConfig.ExtraHosts }} --add-host {{.}} {{ end }}' frc-directors-director) \
                --rm $(docker inspect -f '{{ .Config.Image }}' frc-directors-director) \
@@ -257,10 +263,12 @@ get_zookeeper(){
         #Cipher dump file and remove the one in clear text
 
         # gpg2 --recipient-file $public_key_path -e $zookeeper_folder/zkdump.zip #Ideally we'd use this but it requires a version not so ubiquitous.
-        encrypt_file $public_key_path $zookeeper_folder/zkdump.zip;
+        encrypt_file $public_key_path $zookeeper_cleartext_folder/zkdump.zip;
         encryption_result=$?
         
-        rm $zookeeper_folder/zkdump.zip
+		# Collect the encrypted version of the ZK contents bundle and include it in the general bundle.
+		mv $zookeeper_cleartext_folder/zkdump.zip.gpg $zookeeper_folder 
+        rm -r $zookeeper_cleartext_folder # Then, delete the temporary directory.
 
         if [ "$encryption_result" -ne "0" ];
                 then
