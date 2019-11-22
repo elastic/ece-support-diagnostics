@@ -213,9 +213,7 @@ encrypt_file(){
         public_key_file=$1
         target_file=$2
         
-        temp_keyring=/tmp/$(date +%s%N)_pgp
-
-        mkdir $temp_keyring
+        temp_keyring=$(mktemp -d)
 
         gpg2 --homedir $temp_keyring --import $public_key_file
 
