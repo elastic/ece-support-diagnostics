@@ -29,6 +29,15 @@ create_folders(){
 			allocators)
 			mkdir -p $elastic_folder/allocators/
 			;;
+			instances)
+			mkdir -p $elastic_folder/instances/
+			;;
+			templates)
+			mkdir -p $elastic_folder/templates
+			;;
+			deployments)
+			mkdir -p $elastic_folder/deployments
+			;;
 			plan)
 			mkdir -p $docker_folder/plan/
 			;;
@@ -86,6 +95,10 @@ show_help(){
 	echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
 	echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster"
 	echo "-a|--allocators #gathers allocators information (user/pass required)"
+	echo "-i|--instances  #gathers instance information (user/pass required)"
+	echo "-t|--templates  #gathers template information (user/pass required)"
+	echo "-l|--deployments  #gathers deployments information (user/pass required)"
+	echo "-f|--full # equivalent to -s -a -i -t -l "
 	echo "-u|--username <username>"
 	echo "-p|--password <password>"
 	echo ""
@@ -246,6 +259,17 @@ process_action(){
                         create_folders allocators
                         do_http_request GET http /api/v1/platform/infrastructure/allocators $ece_port "" $elastic_folder/allocators/allocators.json
                         ;;
+						instances)
+						create_folders instances
+						do_http_request GET http /api/v1/platform/configuration/instances $ece_port "" $elastic_folder/instances/instances.json
+						;;
+						templates)
+						create_folders templates
+						do_http_request GET http /api/v1/platform/configuration/templates/deployments $ece_port "" $elastic_folder/templates/templates.json
+						;;
+						deployments)
+						create_folders deployments
+						do_http_request GET http /api/v1/deployments $ece_port "" $elastic_folder/deployments/deployments.json
 			plan)
 			validate_http_creds
 			if [[ -n $missing_creds ]]
@@ -311,6 +335,10 @@ if [ "$#" -eq 0 ]; then
 else
 	while :; do
 	    	case $1 in
+			-f|--full)
+				#gather as much info as possible
+			actions="$actions system allocators instances templates deployments"
+			;;
 	            -s|--system)
 	            #gather system data
 	            actions="$actions system"
@@ -349,6 +377,18 @@ else
                     #gather allocators data
 		    actions="$actions allocators"
                     ;;
+			-i|--instances)
+					#gather instance configuration
+			actions="$actions instances"		
+					;;
+			-t|--templates)
+					#Gather template info
+			actions="$actions templates"
+					;;
+			-l|--deployments)
+					#gather deployments info
+			actions="$actions deployments"		
+					;;
 		    -u|--user)
                     #user for issuing HTTP requests
 		    if [ -z "$2" ]; then
