@@ -14,6 +14,18 @@ func NewECEversionTask() helpers.Task {
 func NewECEtasks() *helpers.Tasks {
 	return &helpers.Tasks{
 		helpers.Task{
+			Filename: "ece/instances.json",
+			Uri:      "/api/v1/platform/configuration/instances",
+		},
+		helpers.Task{
+			Filename: "ece/templates.json",
+			Uri:      "/api/v1/platform/configuration/templates/deployments",
+		},
+		helpers.Task{
+			Filename: "ece/deployments.json",
+			Uri:      "/api/v1/deployments",
+		},
+		helpers.Task{
 			Filename: "ece/zookeeper.json",
 			Uri:      "/api/v0.1/regions/ece-region/zookeeper",
 		},
