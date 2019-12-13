@@ -185,12 +185,12 @@ func NewElasticsearchAPIset() *helpers.Tasks {
 			Versions: ">= 2.x",
 		},
 		helpers.Task{
-			Filename: "/secUrity_users.json",
+			Filename: "/security_users.json",
 			Uri:      "/_shield/user?pretty",
 			Versions: ">= 2.x",
 		},
 		helpers.Task{
-			Filename: "/secUrity_roles.json",
+			Filename: "/security_roles.json",
 			Uri:      "/_shield/role?pretty",
 			Versions: ">= 2.x",
 		},
@@ -241,18 +241,18 @@ func NewElasticsearchAPIset() *helpers.Tasks {
 			Versions: ">= 5.x",
 		},
 		helpers.Task{
-			Filename: "/secUrity_users.json",
-			Uri:      "/_xpack/secUrity/user?pretty",
+			Filename: "/security_users.json",
+			Uri:      "/_xpack/security/user?pretty",
 			Versions: ">= 5.x",
 		},
 		helpers.Task{
-			Filename: "/secUrity_roles.json",
-			Uri:      "/_xpack/secUrity/role?pretty",
+			Filename: "/security_roles.json",
+			Uri:      "/_xpack/security/role?pretty",
 			Versions: ">= 5.x",
 		},
 		helpers.Task{
-			Filename: "/secUrity_role_mappings.json",
-			Uri:      "/_xpack/secUrity/role_mapping?pretty",
+			Filename: "/security_role_mappings.json",
+			Uri:      "/_xpack/security/role_mapping?pretty",
 			Versions: ">= 5.x",
 		},
 		helpers.Task{
@@ -311,8 +311,8 @@ func NewElasticsearchAPIset() *helpers.Tasks {
 			Versions: ">= 6.5.x",
 		},
 		helpers.Task{
-			Filename: "/secUrity_priv.json",
-			Uri:      "/_xpack/secUrity/privilege?pretty",
+			Filename: "/security_priv.json",
+			Uri:      "/_xpack/security/privilege?pretty",
 			Versions: ">= 6.5.x",
 		},
 		helpers.Task{
