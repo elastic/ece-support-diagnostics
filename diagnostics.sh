@@ -245,6 +245,14 @@ get_zookeeper(){
                         excluded_nodes=","
         fi
 
+        # Check that the current ECE version supports ZK dumps
+        docker run --rm $(docker inspect -f '{{ .Config.Image }}' frc-directors-director)  ls /elastic_cloud_apps/shell/scripts/dumpZkContents.sc;
+
+        if [ "$?" -ne "0" ];
+                then
+                        die "ERROR: ECE Version 2.5 or higher is required"
+        fi
+
         # Note that this is the directory (simbling to $elastic_folder) which will contain the clear temporary
         # ZK bundle in clear text prior to encryption. It will be deleted automatically.
         zookeeper_cleartext_folder=$(mktemp -d $elastic_folder/../zookeeper_dump_temporary.XXXX)
