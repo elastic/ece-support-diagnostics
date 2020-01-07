@@ -253,7 +253,7 @@ get_zookeeper(){
                         die "ERROR: ECE Version 2.5 or higher is required"
         fi
 
-        # Note that this is the directory (simbling to $elastic_folder) which will contain the clear temporary
+        # Note that this is the directory (sibling to $elastic_folder) which will contain the clear temporary
         # ZK bundle in clear text prior to encryption. It will be deleted automatically.
         zookeeper_cleartext_folder=$(mktemp -d $elastic_folder/../zookeeper_dump_temporary.XXXX)
 
