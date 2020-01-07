@@ -6,6 +6,7 @@ diag_folder=$output_path/$diag_name
 elastic_folder=$diag_folder/elastic
 docker_folder=$diag_folder/docker
 docker_logs_folder=$docker_folder/logs
+zookeeper_folder=$elastic_folder/zookeeper_dump
 
 ece_host=localhost
 ece_port=12400
@@ -16,6 +17,9 @@ cluster_id=
 missing_creds=
 actions=
 storage_path=/mnt/data/elastic
+pgp_destination_keypath=
+zk_root=/
+zk_excluded=
 
 create_folders(){
 	while :; do
@@ -34,6 +38,9 @@ create_folders(){
 			;;
 			cluster_info)
 			mkdir -p $docker_folder/cluster_info/
+			;;
+			zookeeper)
+			mkdir -p $zookeeper_folder
 			;;
             		--) # End of all options.
             		shift
@@ -82,6 +89,9 @@ show_help(){
 	echo "-x|--port <port> #Specifies ECE port (default:12400)"
 	echo "-s|--system #collects elastic logs and system information"
 	echo "-d|--docker #collects docker information"
+	echo "-zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents"
+	echo "-zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)"
+	echo "-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle"
 	echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
 	echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
 	echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster"
@@ -196,6 +206,83 @@ get_docker(){
 	while [ $i -ne 0 ] ; do date >> $docker_folder/stats_samples.txt ; print_msg "Grabbing docker stats $i" "INFO"; docker stats --no-stream >> $docker_folder/stats_samples.txt ; i=$((i-1)); done
 }
 
+encrypt_file(){
+
+        # This function imitates the behaviour of `gpg2 --recipient-file PUBLIC_KEY_FILE -e FILE` which is only available from gpg 2.1.14
+    
+        public_key_file=$1
+        target_file=$2
+        
+        temp_keyring=$(mktemp -d)
+
+        gpg2 --homedir $temp_keyring --import $public_key_file
+
+        recipient=$(gpg2 --homedir $temp_keyring -k | grep uid | grep -o '<.\+\@.\+>' | sed 's/[<>]//g' | head -n1)
+
+        gpg2 --homedir $temp_keyring --trust-model always --batch --recipient $recipient -e $target_file
+        gpg_result=$?
+        
+        rm -r $temp_keyring
+
+        return $gpg_result
+}
+
+get_zookeeper(){
+        public_key_path=$1
+        root_node="/"    
+        if [ -n "$2" ]
+                #Path for sub-tree root has been passed
+                then
+                    	root_node=$2
+        fi
+
+        if [ -n "$3" ]
+                #List of sub-trees to exclude from the bundle has been passed
+                then
+                        excluded_nodes=$3
+                #No excluded sub-trees
+                else
+                        excluded_nodes=","
+        fi
+
+        # Check that the current ECE version supports ZK dumps
+        docker run --rm $(docker inspect -f '{{ .Config.Image }}' frc-directors-director)  ls /elastic_cloud_apps/shell/scripts/dumpZkContents.sc;
+
+        if [ "$?" -ne "0" ];
+                then
+                        die "ERROR: ECE Version 2.5 or higher is required"
+        fi
+
+        # Note that this is the directory (sibling to $elastic_folder) which will contain the clear temporary
+        # ZK bundle in clear text prior to encryption. It will be deleted automatically.
+        zookeeper_cleartext_folder=$(mktemp -d $elastic_folder/../zookeeper_dump_temporary.XXXX)
+
+        #Collect result at $zookeeper_cleartext_folder/zkdump.zip
+        #This is done outside the bundle directory to avoid accidental inclusion of
+        #ZK contents in clear text within the bundle.
+
+        docker run --env SHELL_JAVA_OPTIONS="-Dfound.shell.exec=/elastic_cloud_apps/shell/scripts/dumpZkContents.sc -Dfound.shell.exec-params=pathsToSkip=$excluded_nodes;rootPath=$root_node;outputPath=/target/zkdump.zip" \
+               -v $zookeeper_cleartext_folder:/target -v ~/.found-shell:/elastic_cloud_apps/shell/.found-shell \
+               --env SHELL_ZK_AUTH=$(docker exec -it frc-directors-director bash -c 'echo -n $FOUND_ZK_READWRITE') \
+               $(docker inspect -f '{{ range .HostConfig.ExtraHosts }} --add-host {{.}} {{ end }}' frc-directors-director) \
+               --rm $(docker inspect -f '{{ .Config.Image }}' frc-directors-director) \
+               /elastic_cloud_apps/shell/run-shell.sh;
+        
+        #Cipher dump file and remove the one in clear text
+
+        # gpg2 --recipient-file $public_key_path -e $zookeeper_folder/zkdump.zip #Ideally we'd use this but it requires a version not so ubiquitous.
+        encrypt_file $public_key_path $zookeeper_cleartext_folder/zkdump.zip;
+        encryption_result=$?
+        
+		# Collect the encrypted version of the ZK contents bundle and include it in the general bundle.
+		mv $zookeeper_cleartext_folder/zkdump.zip.gpg $zookeeper_folder 
+        rm -r $zookeeper_cleartext_folder # Then, delete the temporary directory.
+
+        if [ "$encryption_result" -ne "0" ];
+                then
+                        die "ERROR: Failed to encrypt ZK dump bundle"
+        fi
+}
 
 validate_http_creds(){
         if [ -z $user ]
@@ -273,6 +360,10 @@ process_action(){
                                         		print_msg "cannot fetch cluster info without specifying a cluster id. Use option -c|--cluster to specify a cluster ID" "WARN"
                         		fi
 			fi
+                        ;;
+                        zookeeper)
+                        create_folders zookeeper
+                        get_zookeeper $pgp_destination_keypath $zk_root $zk_excluded
                         ;;
                         --)              # End of all options.
                         shift
@@ -396,6 +487,35 @@ else
 			shift
 		    fi
 	    	    ;;
+                    -zk|--zookeeper)
+                    # First check PGP tools are available
+                    gpg2 --help 2>/dev/null > /dev/null;
+                    if [ "$?" -ne "0" ]; then
+                        die 'ERROR: "-zk|--zookeeper" requires `gnupg2` to be installed in the system.'
+                    fi
+                    
+                    if [ -z "$2" ]; then
+                        die 'ERROR: "-zk|--zookeeper" requires a PGP destination public key.'
+                    else
+                        pgp_destination_keypath=$2
+                        actions="$actions zookeeper"
+                        shift
+                    fi
+                    ;;
+                    -zk-path|--zookeeper-path)
+                    # Sets Zookeeper target sub-tree, "/" if not set
+                    if [ -n "$2" ]; then
+                        zk_root=$2
+                        shift
+                    fi
+                    ;;
+                    -zk-excluded|--zookeeper-excluded)
+                    # Sets Zookeeper exclusion paths, no exclussions by default
+                    if [ -n "$2" ]; then
+                        zk_excluded=$2
+                        shift
+                    fi
+                    ;;
 	    	    --)              # End of all options.
             	    shift
                     break
