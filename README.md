@@ -32,6 +32,7 @@ Options:
 -zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents
 -zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)
 -zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle
+--zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks
 -sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system
 -o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)
 -c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster
@@ -88,6 +89,8 @@ This behavior can be constrained so the bundle:
 **Note**: How the list of excluded trees is a comma separated list of ZK paths.
 
 :warning: Eagle-eyed readers have probably noticed that this functionality **requires a PGP public key**. ECE Zookeeper contents contain potentially secret and/or sensitive information. For this reason, the bundle **will never contain ZK contents in clear text**. The output will contain a PGP encrypted file which can only be read by the owner of the private key counterpart for the provided key.
+
+:warning: By default, paths known to contain secrets or sensitive information have been excluded from the bundle. This protection can be deactivated, for those cases on which it is absolutely necessary, using the option `--zookeeper-excluded-insecure`. Please use this option with extreme caution and only when you are willing to show your passwords and certificates to the owner of the public PGP key.
 
 ### Using a custom storage path
 If you've installed ECE using a STORAGE_PATH different than default (`/mnt/data/elastic`), please make sure to pass the below flag to the diagnostics script:
