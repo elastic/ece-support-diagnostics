@@ -21,7 +21,7 @@ pgp_destination_keypath=
 zk_root=/
 
 zk_excluded=""
-# These path patterns are excluded by default for security and prinvacy reasons
+# These path patterns are excluded by default for security and privacy reasons
 zk_excluded="$zk_excluded/container_sets/admin-consoles/containers/admin-console(/inspect@[^/]+)?,"
 zk_excluded="$zk_excluded/container_sets/admin-consoles/secrets,"
 zk_excluded="$zk_excluded/container_sets/blueprints/containers/blueprint(/inspect@[^/]+)?,"
