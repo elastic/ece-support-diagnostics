@@ -50,8 +50,8 @@ zk_excluded="$zk_excluded/services/cloudui/secrets,"
 zk_excluded="$zk_excluded/services/internaltls/config,"
 zk_excluded="$zk_excluded/clusters/[^/]+/app-auth-secrets,"
 zk_excluded="$zk_excluded/clusters/[^/]+/instances/instance-\d+/certificates,"
-zk_excluded="$zk_excluded/kibanas/[^/]+/instances/instance-\d+/certificates"
-
+zk_excluded="$zk_excluded/kibanas/[^/]+/instances/instance-\d+/certificates,"
+zk_excluded="$zk_excluded/[a-z]*/[^/]+/plans"
 
 create_folders(){
 	while :; do
