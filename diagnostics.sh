@@ -18,7 +18,7 @@ missing_creds=
 actions=
 storage_path=/mnt/data/elastic
 pgp_destination_keypath=
-zk_root=/
+zk_root="NONE"
 
 zk_excluded=""
 # These path patterns are excluded by default for security and privacy reasons
@@ -122,7 +122,7 @@ show_help(){
 	echo "-s|--system #collects elastic logs and system information"
 	echo "-d|--docker #collects docker information"
 	echo "-zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents"
-	echo "-zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)"
+	echo "-zk-path|--zookeeper-path <zk_path_to_include> #selects the ZK sub-tree to dump using the provided path (e.g: /clusters)"
 	echo "-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle"
 	echo "--zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks"
 	echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
@@ -262,11 +262,13 @@ encrypt_file(){
 
 get_zookeeper(){
         public_key_path=$1
-        root_node="/"    
-        if [ -n "$2" ]
-                #Path for sub-tree root has been passed
+        root_node=""
+        if [[ -z "$2" || "$2" == "NONE" ]]
                 then
-                    	root_node=$2
+                        die 'ERROR: "-zk|--zookeeper" requires a path for the sub-tree to dump. WARNING: Using "/" might include secret/sensitive information in the bundle.'
+                #Path for sub-tree root has been passed
+                else
+                        root_node=$2
         fi
 
         if [ -n "$3" ]
@@ -536,8 +538,10 @@ else
                     fi
                     ;;
                     -zk-path|--zookeeper-path)
-                    # Sets Zookeeper target sub-tree, "/" if not set
-                    if [ -n "$2" ]; then
+                    # Sets Zookeeper target sub-tree
+                    if [ -z "$2" ]; then
+                        die 'ERROR: This options requires a path string'
+                    else
                         zk_root=$2
                         shift
                     fi
