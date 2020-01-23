@@ -18,8 +18,40 @@ missing_creds=
 actions=
 storage_path=/mnt/data/elastic
 pgp_destination_keypath=
-zk_root=/
-zk_excluded=
+zk_root="NONE"
+
+zk_excluded=""
+# These path patterns are excluded by default for security and privacy reasons
+zk_excluded="$zk_excluded/container_sets/admin-consoles/containers/admin-console(/inspect@[^/]+)?,"
+zk_excluded="$zk_excluded/container_sets/admin-consoles/secrets,"
+zk_excluded="$zk_excluded/container_sets/blueprints/containers/blueprint(/inspect@[^/]+)?,"
+zk_excluded="$zk_excluded/container_sets/blueprints/secrets,"
+zk_excluded="$zk_excluded/container_sets/client-observers/containers/client-observer,"
+zk_excluded="$zk_excluded/container_sets/client-observers/secrets,"
+zk_excluded="$zk_excluded/container_sets/cloud-uis/containers/cloud-ui(/inspect@[^/]+)?,"
+zk_excluded="$zk_excluded/container_sets/cloud-uis/secrets,"
+zk_excluded="$zk_excluded/container_sets/constructors/containers/constructor(/inspect@[^/]+)?,"
+zk_excluded="$zk_excluded/container_sets/constructors/secrets,"
+zk_excluded="$zk_excluded/container_sets/curators/containers/curator(/inspect@[^/]+)?,"
+zk_excluded="$zk_excluded/container_sets/curators/secrets,"
+zk_excluded="$zk_excluded/container_sets/directors/containers/director(/inspect@[^/]+)?,"
+zk_excluded="$zk_excluded/container_sets/directors/secrets,"
+zk_excluded="$zk_excluded/container_sets/proxies/containers/proxy(/inspect@[^/]+),"
+zk_excluded="$zk_excluded/container_sets/proxies/secrets,"
+zk_excluded="$zk_excluded/container_sets/proxies/containers/route-server(/inspect@[^/]+)?,"
+zk_excluded="$zk_excluded/services/runners/[^/]+/containers,"
+zk_excluded="$zk_excluded/clusters/[^/]+/secrets,"
+zk_excluded="$zk_excluded/services/allocators/[^/]+/[^/]+/instances,"
+zk_excluded="$zk_excluded/coordinators/secrets,"
+zk_excluded="$zk_excluded/secrets/certificates,"
+zk_excluded="$zk_excluded/services/adminconsole/secrets,"
+zk_excluded="$zk_excluded/services/proxies/secrets,"
+zk_excluded="$zk_excluded/services/cloudui/secrets,"
+zk_excluded="$zk_excluded/services/internaltls/config,"
+zk_excluded="$zk_excluded/clusters/[^/]+/app-auth-secrets,"
+zk_excluded="$zk_excluded/clusters/[^/]+/instances/instance-\d+/certificates,"
+zk_excluded="$zk_excluded/kibanas/[^/]+/instances/instance-\d+/certificates,"
+zk_excluded="$zk_excluded/[a-z]*/[^/]+/plans"
 
 create_folders(){
 	while :; do
@@ -90,8 +122,9 @@ show_help(){
 	echo "-s|--system #collects elastic logs and system information"
 	echo "-d|--docker #collects docker information"
 	echo "-zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents"
-	echo "-zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)"
+	echo "-zk-path|--zookeeper-path <zk_path_to_include> #selects the ZK sub-tree to dump using the provided path (e.g: /clusters)"
 	echo "-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle"
+	echo "--zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks"
 	echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
 	echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
 	echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster"
@@ -229,11 +262,13 @@ encrypt_file(){
 
 get_zookeeper(){
         public_key_path=$1
-        root_node="/"    
-        if [ -n "$2" ]
-                #Path for sub-tree root has been passed
+        root_node=""
+        if [[ -z "$2" || "$2" == "NONE" ]]
                 then
-                    	root_node=$2
+                        die 'ERROR: "-zk|--zookeeper" requires a path for the sub-tree to dump. WARNING: Using "/" might include secret/sensitive information in the bundle.'
+                #Path for sub-tree root has been passed
+                else
+                        root_node=$2
         fi
 
         if [ -n "$3" ]
@@ -503,16 +538,26 @@ else
                     fi
                     ;;
                     -zk-path|--zookeeper-path)
-                    # Sets Zookeeper target sub-tree, "/" if not set
-                    if [ -n "$2" ]; then
+                    # Sets Zookeeper target sub-tree
+                    if [ -z "$2" ]; then
+                        die 'ERROR: This options requires a path string'
+                    else
                         zk_root=$2
                         shift
                     fi
                     ;;
                     -zk-excluded|--zookeeper-excluded)
-                    # Sets Zookeeper exclusion paths, no exclussions by default
+                    # Sets Zookeeper exclusion paths
                     if [ -n "$2" ]; then
-                        zk_excluded=$2
+                        zk_excluded="$zk_excluded,$2"
+                        shift
+                    fi
+                    ;;
+                    --zookeeper-excluded-insecure)
+                    # Sets Zookeeper exclusion paths removing defaults Secret/Sensitive exclusions
+                    if [ -n "$2" ]; then
+                        print_msg "WARNING!! This option may lead to the inclusion of secrets and sensitive information within the bundle."
+                        zk_excluded="$2"
                         shift
                     fi
                     ;;
