@@ -333,14 +333,14 @@ validate_http_creds(){
 do_http_request(){
 
 	method=$1
-	protocol=$2
+	protocolrequest=$2
 	path=$3
 	ece_port=$4
 	args=$5
 	output_file=$6
 
 	#build request
-        request="curl -s -S -X$method -u $user:$password $protocol://$ece_host:$ece_port$path -o $output_file"
+        request="curl -k -s -X$method -u $user:$password $protocolrequest://$ece_host:$ece_port$path -o $output_file"
 
 	#validation
 	validate_http_creds
@@ -376,8 +376,8 @@ process_action(){
                         allocators)
                         create_folders allocators
                         do_http_request GET $protocol /api/v1/platform/infrastructure/allocators $ece_port "" $elastic_folder/allocators/allocators.json
-						do_http_request GET $protocol /api/v1/platform $ece_port "" $elastic_folder/allocators/platform.json
-						do_http_request GET $protocol /api/v1/clusters/elasticsearch $ece_port "" $elastic_folder/allocators/elasticsearch-clusters.json
+                        do_http_request GET $protocol /api/v1/platform $ece_port "" $elastic_folder/allocators/platform.json
+                        do_http_request GET $protocol /api/v1/clusters/elasticsearch $ece_port "" $elastic_folder/allocators/elasticsearch-clusters.json
                         ;;
 			plan)
 			validate_http_creds
@@ -387,7 +387,7 @@ process_action(){
 					if [ -n $cluster_id ]
 						then
 							create_folders plan
-							do_http_request GET http /api/v1/clusters/elasticsearch/$cluster_id/plan/activity $ece_port "" $docker_folder/plan/plan_$cluster_id.json
+							do_http_request GET $protocol /api/v1/clusters/elasticsearch/$cluster_id/plan/activity $ece_port "" $docker_folder/plan/plan_$cluster_id.json
 						else
 							print_msg "cannot fetch cluster plan activity without specifying a cluster id. Use option -c|--cluster to specify a cluster ID"	"WARN"
 					fi
@@ -401,7 +401,7 @@ process_action(){
 					if [ -n $cluster_id ]
                                 		then
                                         		create_folders cluster_info
-                                        		do_http_request GET http "/api/v1/clusters/elasticsearch/$cluster_id" $ece_port "?show_metadata=true&show_plans=true" $docker_folder/cluster_info/cluster_info_$cluster_id.json
+                                        		do_http_request GET $protocol "/api/v1/clusters/elasticsearch/$cluster_id" $ece_port "?show_metadata=true&show_plans=true" $docker_folder/cluster_info/cluster_info_$cluster_id.json
                                 		else
                                         		print_msg "cannot fetch cluster info without specifying a cluster id. Use option -c|--cluster to specify a cluster ID" "WARN"
                         		fi
