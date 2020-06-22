@@ -127,8 +127,8 @@ show_help(){
 	echo "--zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks"
 	echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
 	echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
-	echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster"
-	echo "-a|--allocators #gathers allocators information (user/pass required)"
+	echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (ECE user/pass required). Also restricts -d|--docker action to a specific cluster"
+	echo "-a|--allocators #gathers allocators information (ECE user/pass required)"
 	echo "-u|--username <username>"
 	echo "-p|--password <password>"
 	echo ""
@@ -339,7 +339,7 @@ do_http_request(){
 	output_file=$6
 
 	#build request
-        request="curl -s -X$method -u $user:$password $protocol://$ece_host:$ece_port$path -o $output_file"
+        request="curl -s -S -X$method -u $user:$password $protocol://$ece_host:$ece_port$path -o $output_file"
 
 	#validation
 	validate_http_creds
@@ -347,9 +347,15 @@ do_http_request(){
 		then
 			print_msg "Skipping HTTP request [ $path ] because of missing arguments [ $missing_creds ]" "WARN"
                 else
-					print_msg "Calling [$ece_host:$ece_port$path] with user[$user]" "INFO"
-					sleep 1
-                                        $request
+			print_msg "Calling [$ece_host:$ece_port$path] with user[$user]" "INFO"
+			sleep 1
+			STDERR=`$request 2>&1`
+			if [ ! -s $output_file ]; then
+				print_msg "Output from API call is empty - please ensure you are connecting to a coordinator node with -e" "ERROR"
+				print_msg "${STDERR}" "ERROR"
+			elif grep -q "root.unauthenticated" $output_file; then
+				print_msg "The supplied authentication is invalid - please use ECE admin user/pass" "ERROR"
+			fi
         fi
 }
 
