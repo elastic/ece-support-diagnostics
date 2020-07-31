@@ -355,6 +355,8 @@ do_http_request(){
 				print_msg "${STDERR}" "ERROR"
 			elif grep -q "root.unauthenticated" $output_file; then
 				print_msg "The supplied authentication is invalid - please use ECE admin user/pass" "ERROR"
+			elif grep -q "clusters.cluster_not_found" $output_file; then
+				print_msg "Specified Cluster ID is invalid.  The Elasticsearch cluster ID can be found within the endpoint URL" "ERROR"
 			fi
         fi
 }
