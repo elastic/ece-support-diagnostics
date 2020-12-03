@@ -147,6 +147,7 @@ get_system(){
 	print_msg "Gathering system info..." "INFO"
 	uname -a > $elastic_folder/uname.txt
 	cat /etc/*-release > $elastic_folder/linux-release.txt
+	cat /proc/cmdline > $elastic_folder/cmdline.txt
 	top -n1 -b > $elastic_folder/top.txt
 	ps -eaf > $elastic_folder/ps.txt
 	df -h > $elastic_folder/df.txt
