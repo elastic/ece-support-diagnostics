@@ -348,7 +348,7 @@ do_http_request(){
 		then
 			print_msg "Skipping HTTP request [ $path ] because of missing arguments [ $missing_creds ]" "WARN"
                 else
-			print_msg "Calling [$ece_host:$ece_port$path] with user[$user]" "INFO"
+			print_msg "Calling [$ece_host:$ece_port$path] with user [$user]" "INFO"
 			sleep 1
 			STDERR=`$request 2>&1`
 			if [ ! -s $output_file ]; then
@@ -375,7 +375,9 @@ process_action(){
                         ;;
                         allocators)
                         create_folders allocators
-                        do_http_request GET http /api/v1/platform/infrastructure/allocators $ece_port "" $elastic_folder/allocators/allocators.json
+                        do_http_request GET $protocol /api/v1/platform/infrastructure/allocators $ece_port "" $elastic_folder/allocators/allocators.json
+						do_http_request GET $protocol /api/v1/platform $ece_port "" $elastic_folder/allocators/platform.json
+						do_http_request GET $protocol /api/v1/clusters/elasticsearch $ece_port "" $elastic_folder/allocators/elasticsearch-clusters.json
                         ;;
 			plan)
 			validate_http_creds
