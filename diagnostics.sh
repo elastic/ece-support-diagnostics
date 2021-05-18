@@ -151,6 +151,7 @@ get_system(){
         top -n1 -b > $elastic_folder/top.txt
         ps -eaf > $elastic_folder/ps.txt
         df -h > $elastic_folder/df.txt
+        sudo dmesg --ctime > $elastic_folder/dmesg.txt
 
         #network
         sleep 1
