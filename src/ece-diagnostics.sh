@@ -487,10 +487,10 @@ else
                         #gather allocators data
                         actions="$actions allocators"
                         ;;
-                        -u|--user)
+                        -u|--username)
                         #user for issuing HTTP requests
                         if [ -z "$2" ]; then
-                                die 'ERROR: "-u|--user" requires a username value.'
+                                die 'ERROR: "-u|--username" requires a username value.'
                         else
                                 user=$2
                                 shift
