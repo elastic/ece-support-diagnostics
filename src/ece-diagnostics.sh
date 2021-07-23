@@ -131,7 +131,7 @@ show_help(){
         echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (ECE user/pass required). Also restricts -d|--docker action to a specific cluster"
         echo "-a|--allocators #gathers allocators information (ECE user/pass required)"
         echo "-u|--username <username>"
-        echo "-p|--password <password>"
+        echo "-p|--password <password> #omiting value or argument will prompt password"
         echo "-lh|--log-filter-hours #filter for log age in hours (default:72)"
         echo ""
         echo "Sample usage:"
@@ -437,6 +437,11 @@ print_msg(){
 
 }
 
+promptPassword(){
+        echo -n "Enter password for ${user} : "
+        read -s password
+}
+
 get_fs_permissions(){
         ls -al $storage_path > $elastic_folder/fs_permissions_storage_path.txt 2>&1
         ls -al /mnt/data > $elastic_folder/fs_permissions_mnt_data.txt 2>&1
@@ -595,6 +600,9 @@ else
                 esac
                 shift
         done
+        if [[ -n "$user" ]] && [[ -z "$password" ]]; then
+                promptPassword
+        fi
 fi
 
 print_msg "ECE Diagnostics" "INFO"
