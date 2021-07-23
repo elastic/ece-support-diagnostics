@@ -7,6 +7,7 @@ elastic_folder=$diag_folder/elastic
 docker_folder=$diag_folder/docker
 docker_logs_folder=$docker_folder/logs
 zookeeper_folder=$elastic_folder/zookeeper_dump
+log_hours=72
 
 ece_host=localhost
 ece_port=12400
@@ -131,6 +132,7 @@ show_help(){
         echo "-a|--allocators #gathers allocators information (ECE user/pass required)"
         echo "-u|--username <username>"
         echo "-p|--password <password>"
+        echo "-lh|--log-filter-hours #filter for log age in hours (default:72)"
         echo ""
         echo "Sample usage:"
         echo "\"./diagnostics.sh -d -s\" #collects system and docker level info"
@@ -197,7 +199,7 @@ get_system(){
                         print_msg "'sar' command not found. Please install package 'sysstat' to collect extended system stats" "WARN"
         fi
         print_msg "Grabbing ECE logs" "INFO"
-        cd $storage_path && find . -type f \( -name "*.log" -o -name "*.ndjson" \) -mmin -4320 -exec cp --preserve=timestamps --parents \{\} $elastic_folder \;
+        cd $storage_path && find . -type f \( -name "*.log" -o -name "*.ndjson" \) -mmin -$((log_hours*60)) -exec cp --preserve=timestamps --parents \{\} $elastic_folder \;
         print_msg "Checking XFS info" "INFO"
         [[ -x "$(type -P xfs_info)" ]] && xfs_info $storage_path > $elastic_folder/xfs_info.txt 2>&1
 }
@@ -220,7 +222,7 @@ get_docker(){
         for ((; i<$arrayLength; i++))
         do
                 print_msg "Grabbing logs for containerId [${containersId[$i]}]" "INFO"
-                docker logs --since 72h ${containersId[$i]} > $docker_logs_folder/${logNames[$i]}-container.log 2>&1
+                docker logs --since "${log_hours}h" ${containersId[$i]} > $docker_logs_folder/${logNames[$i]}-container.log 2>&1
         done
 
         print_msg "Grabbing docker ps..." "INFO"
@@ -453,6 +455,14 @@ else
                         #gather system data
                         actions="$actions system"
                         ;;
+                -lh|--log-filter-hours)
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-sf|--log-filter-hours" requires a valid number of hours'
+                                else
+                                        log_hours=$2
+                                        shift
+                                fi
+                                ;;
                 -sp|--storage-path)
                         #changes -s behaviour by
                         #overriding default $storage_path value (/mnd/data/elastic)
