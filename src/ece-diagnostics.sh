@@ -1,79 +1,77 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-output_path=/tmp
-diag_name=ece_diag_$(hostname)_$(date "+%d_%b_%Y_%H_%M_%S")
-diag_folder=$output_path/$diag_name
-elastic_folder=$diag_folder/elastic
-docker_folder=$diag_folder/docker
-docker_logs_folder=$docker_folder/logs
-zookeeper_folder=$elastic_folder/zookeeper_dump
-log_hours=72
+ECE_DIAG_VERSION=2.0.0
 
-ece_host=localhost
-ece_port=12400
-protocol=http
-user=
-password=
-cluster_id=
-missing_creds=
-actions=
-storage_path=/mnt/data/elastic
-pgp_destination_keypath=
-zk_root="NONE"
+setVariables(){
+        output_path=/tmp
+        diag_name=ece_diag_$(hostname)_$(date "+%d_%b_%Y_%H_%M_%S")
+        diag_folder=$output_path/$diag_name
+        elastic_folder=$diag_folder/elastic
+        docker_folder=$diag_folder/docker
+        docker_logs_folder=$docker_folder/logs
+        zookeeper_folder=$elastic_folder/zookeeper_dump
+        log_hours=72
 
-zk_excluded=""
-# These path patterns are excluded by default for security and privacy reasons
-zk_excluded="$zk_excluded/container_sets/admin-consoles/containers/admin-console(/inspect@[^/]+)?,"
-zk_excluded="$zk_excluded/container_sets/admin-consoles/secrets,"
-zk_excluded="$zk_excluded/container_sets/blueprints/containers/blueprint(/inspect@[^/]+)?,"
-zk_excluded="$zk_excluded/container_sets/blueprints/secrets,"
-zk_excluded="$zk_excluded/container_sets/client-observers/containers/client-observer,"
-zk_excluded="$zk_excluded/container_sets/client-observers/secrets,"
-zk_excluded="$zk_excluded/container_sets/cloud-uis/containers/cloud-ui(/inspect@[^/]+)?,"
-zk_excluded="$zk_excluded/container_sets/cloud-uis/secrets,"
-zk_excluded="$zk_excluded/container_sets/constructors/containers/constructor(/inspect@[^/]+)?,"
-zk_excluded="$zk_excluded/container_sets/constructors/secrets,"
-zk_excluded="$zk_excluded/container_sets/curators/containers/curator(/inspect@[^/]+)?,"
-zk_excluded="$zk_excluded/container_sets/curators/secrets,"
-zk_excluded="$zk_excluded/container_sets/directors/containers/director(/inspect@[^/]+)?,"
-zk_excluded="$zk_excluded/container_sets/directors/secrets,"
-zk_excluded="$zk_excluded/container_sets/proxies/containers/proxy(/inspect@[^/]+),"
-zk_excluded="$zk_excluded/container_sets/proxies/secrets,"
-zk_excluded="$zk_excluded/container_sets/proxies/containers/route-server(/inspect@[^/]+)?,"
-zk_excluded="$zk_excluded/services/runners/[^/]+/containers,"
-zk_excluded="$zk_excluded/clusters/[^/]+/secrets,"
-zk_excluded="$zk_excluded/services/allocators/[^/]+/[^/]+/instances,"
-zk_excluded="$zk_excluded/coordinators/secrets,"
-zk_excluded="$zk_excluded/secrets/certificates,"
-zk_excluded="$zk_excluded/services/adminconsole/secrets,"
-zk_excluded="$zk_excluded/services/proxies/secrets,"
-zk_excluded="$zk_excluded/services/cloudui/secrets,"
-zk_excluded="$zk_excluded/services/internaltls/config,"
-zk_excluded="$zk_excluded/clusters/[^/]+/app-auth-secrets,"
-zk_excluded="$zk_excluded/clusters/[^/]+/instances/instance-\d+/certificates,"
-zk_excluded="$zk_excluded/kibanas/[^/]+/instances/instance-\d+/certificates,"
-zk_excluded="$zk_excluded/[a-z]*/[^/]+/plans"
+        ece_host=localhost
+        ece_port=12400
+        protocol=http
+        user=
+        password=
+        # cluster_id=
+        missing_creds=
+        actions=
+        storage_path=/mnt/data/elastic
+} 
+
+setVariablesZK(){
+        pgp_destination_keypath=
+        zk_root="NONE"
+
+        zk_excluded=""
+        # These path patterns are excluded by default for security and privacy reasons
+        zk_excluded="$zk_excluded/container_sets/admin-consoles/containers/admin-console(/inspect@[^/]+)?,"
+        zk_excluded="$zk_excluded/container_sets/admin-consoles/secrets,"
+        zk_excluded="$zk_excluded/container_sets/blueprints/containers/blueprint(/inspect@[^/]+)?,"
+        zk_excluded="$zk_excluded/container_sets/blueprints/secrets,"
+        zk_excluded="$zk_excluded/container_sets/client-observers/containers/client-observer,"
+        zk_excluded="$zk_excluded/container_sets/client-observers/secrets,"
+        zk_excluded="$zk_excluded/container_sets/cloud-uis/containers/cloud-ui(/inspect@[^/]+)?,"
+        zk_excluded="$zk_excluded/container_sets/cloud-uis/secrets,"
+        zk_excluded="$zk_excluded/container_sets/constructors/containers/constructor(/inspect@[^/]+)?,"
+        zk_excluded="$zk_excluded/container_sets/constructors/secrets,"
+        zk_excluded="$zk_excluded/container_sets/curators/containers/curator(/inspect@[^/]+)?,"
+        zk_excluded="$zk_excluded/container_sets/curators/secrets,"
+        zk_excluded="$zk_excluded/container_sets/directors/containers/director(/inspect@[^/]+)?,"
+        zk_excluded="$zk_excluded/container_sets/directors/secrets,"
+        zk_excluded="$zk_excluded/container_sets/proxies/containers/proxy(/inspect@[^/]+),"
+        zk_excluded="$zk_excluded/container_sets/proxies/secrets,"
+        zk_excluded="$zk_excluded/container_sets/proxies/containers/route-server(/inspect@[^/]+)?,"
+        zk_excluded="$zk_excluded/services/runners/[^/]+/containers,"
+        zk_excluded="$zk_excluded/clusters/[^/]+/secrets,"
+        zk_excluded="$zk_excluded/services/allocators/[^/]+/[^/]+/instances,"
+        zk_excluded="$zk_excluded/coordinators/secrets,"
+        zk_excluded="$zk_excluded/secrets/certificates,"
+        zk_excluded="$zk_excluded/services/adminconsole/secrets,"
+        zk_excluded="$zk_excluded/services/proxies/secrets,"
+        zk_excluded="$zk_excluded/services/cloudui/secrets,"
+        zk_excluded="$zk_excluded/services/internaltls/config,"
+        zk_excluded="$zk_excluded/clusters/[^/]+/app-auth-secrets,"
+        zk_excluded="$zk_excluded/clusters/[^/]+/instances/instance-\d+/certificates,"
+        zk_excluded="$zk_excluded/kibanas/[^/]+/instances/instance-\d+/certificates,"
+        zk_excluded="$zk_excluded/[a-z]*/[^/]+/plans"
+}
 
 create_folders(){
         while :; do
                 case $1 in
                 system)
-                        mkdir -p $elastic_folder
+                        mkdir -p "$elastic_folder"
                         ;;
                 docker)
-                        mkdir -p $docker_logs_folder
-                        ;;
-                allocators)
-                        mkdir -p $elastic_folder/allocators/
-                        ;;
-                plan)
-                        mkdir -p $docker_folder/plan/
-                        ;;
-                cluster_info)
-                        mkdir -p $docker_folder/cluster_info/
+                        mkdir -p "$docker_logs_folder"
                         ;;
                 zookeeper)
-                        mkdir -p $zookeeper_folder
+                        mkdir -p "$zookeeper_folder"
                         ;;
                 --) # End of all options.
                         shift
@@ -88,19 +86,16 @@ create_folders(){
 
 clean(){
         print_msg "Cleaning temp files..." "INFO"
-        rm -rf $diag_folder
+        rm -rf "$diag_folder"
 }
-
-
-
 
 create_archive(){
 
-        if [ -d $diag_folder ]
+        if [ -d "$diag_folder" ]
                 then
                         print_msg "Compressing diag file..." "INFO"
-                        cd $output_path && tar czf $diag_name.tar.gz $diag_name/* 2>&1
-                        print_msg "Diag ready at $output_path/$diag_name.tar.gz" "INFO"
+                        cd "$output_path" && tar czf "$diag_name".tar.gz "$diag_name"/* 2>&1
+                        print_msg "Diag ready at ${output_path}/${diag_name}.tar.gz" "INFO"
                 else
                         print_msg "Nothing to do." "INFO"
                         exit 1
@@ -117,7 +112,7 @@ show_help(){
         echo "Usage: ./diagnostics.sh [OPTIONS]"
         echo ""
         echo "Options:"
-        echo "-e|--ecehost #Specifies ip/hostname of the ECE (default:localhost)"
+        echo "-e|--ecehost #Specifies ip/hostname of the ECE Coordinator (default:localhost)"
         echo "-y|--protocol <http/https> #Specifies use of http/https (default:http)"
         echo "-x|--port <port> #Specifies ECE port (default:12400)"
         echo "-s|--system #collects elastic logs and system information"
@@ -128,45 +123,45 @@ show_help(){
         echo "--zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks"
         echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
         echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
-        echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (ECE user/pass required). Also restricts -d|--docker action to a specific cluster"
-        echo "-a|--allocators #gathers allocators information (ECE user/pass required)"
+        # echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (ECE user/pass required). Also restricts -d|--docker action to a specific cluster"
+        # echo "-a|--allocators #gathers allocators information (ECE user/pass required)"
         echo "-u|--username <username>"
-        echo "-p|--password <password> #omiting value or argument will prompt password"
-        echo "-lh|--log-filter-hours #filter for log age in hours (default:72)"
+        echo "-p|--password <password>"
         echo ""
         echo "Sample usage:"
         echo "\"./diagnostics.sh -d -s\" #collects system and docker level info"
-        echo "\"./diagnostics.sh -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects allocators information"
-        echo "\"./diagnostics.sh -e 192.168.1.42 -x 12409 -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects allocators information using custom host and port"
-        echo "\"./diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -d -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info and docker info only for the specified cluster ID"
-        echo "\"./diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info for the specified cluster ID"
+        echo "\"./diagnostics.sh -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects ECE APIs information"
+        # echo "\"./diagnostics.sh -e 192.168.1.42 -x 12409 -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects allocators information using custom host and port"
+        # echo "\"./diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -d -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info and docker info only for the specified cluster ID"
+        # echo "\"./diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info for the specified cluster ID"
         echo ""
 }
 
 
 get_system(){
+
         #system info
         print_msg "Gathering system info..." "INFO"
-        uname -a > $elastic_folder/uname.txt
-        cat /etc/*-release > $elastic_folder/linux-release.txt
-        cat /proc/cmdline > $elastic_folder/cmdline.txt
-        top -n1 -b > $elastic_folder/top.txt
-        ps -eaf > $elastic_folder/ps.txt
-        df -h > $elastic_folder/df.txt
-        sudo dmesg --ctime > $elastic_folder/dmesg.txt
+        uname -a > "$elastic_folder"/uname.txt
+        cat /etc/*-release > "$elastic_folder"/linux-release.txt
+        cat /proc/cmdline > "$elastic_folder"/cmdline.txt
+        top -n1 -b > "$elastic_folder"/top.txt
+        ps -eaf > "$elastic_folder"/ps.txt
+        df -h > "$elastic_folder"/df.txt
+        sudo dmesg --ctime > "$elastic_folder"/dmesg.txt
 
         #network
         sleep 1
         print_msg "Gathering network info..." "INFO"
         sleep 1
-        sudo netstat -anp > $elastic_folder/netstat_all.txt 2>&1
-        sudo netstat -ntulpn > $elastic_folder/netstat_listening.txt 2>&1
-        sudo iptables -L > $elastic_folder/iptables.txt 2>&1
-        sudo route -n > $elastic_folder/routes.txt 2>&1
+        sudo netstat -anp > "$elastic_folder"/netstat_all.txt 2>&1
+        sudo netstat -ntulpn > "$elastic_folder"/netstat_listening.txt 2>&1
+        sudo iptables -L > "$elastic_folder"/iptables.txt 2>&1
+        sudo route -n > "$elastic_folder/"routes.txt 2>&1
 
         #mounts
-        sudo mount > $elastic_folder/mounts.txt 2>&1
-        sudo cat /etc/fstab > $elastic_folder/fstab.txt 2>&1
+        sudo mount > "$elastic_folder"/mounts.txt 2>&1
+        sudo cat /etc/fstab > "$elastic_folder"/fstab.txt 2>&1
 
         #fs permissions
         get_fs_permissions
@@ -179,68 +174,67 @@ get_system(){
                 then
                         #sar individual devices - sample 5 times every 1 second
                         print_msg "SAR [sampling individual I/O devices]" "INFO"
-                        sar -d -p 1 5 > $elastic_folder/sar_devices.txt 2>&1
+                        sar -d -p 1 5 > "$elastic_folder"/sar_devices.txt 2>&1
                         #CPU usage - individual cores - sample 5 times every 1 second
                         print_msg "SAR [sampling CPU cores usage]" "INFO"
-                        sar -P ALL 1 5 > $elastic_folder/sar_cpu_cores.txt 2>&1
+                        sar -P ALL 1 5 > "$elastic_folder"/sar_cpu_cores.txt 2>&1
                         #load average last 1-5-15 minutes - 1 sample
                         print_msg "SAR [collect load average]" "INFO"
-                        sar -q 1 1 > $elastic_folder/sar_load_average_sampled.txt 2>&1
+                        sar -q 1 1 > "$elastic_folder"/sar_load_average_sampled.txt 2>&1
                         #memory - sample 5 times every 1 second
                         print_msg "SAR [sampling memory usage]" "INFO"
-                        sar -r 1 5 > $elastic_folder/sar_memory_sampled.txt 2>&1
+                        sar -r 1 5 > "$elastic_folder"/sar_memory_sampled.txt 2>&1
                         #swap - sample once
                         print_msg "SAR [collect swap usage]" "INFO"
-                        sar -S 1 1 > $elastic_folder/sar_swap_sampled.txt 2>&1
+                        sar -S 1 1 > "$elastic_folder"/sar_swap_sampled.txt 2>&1
                         #network
                         print_msg "SAR [collect network stats]" "INFO"
-                        sar -n DEV > $elastic_folder/sar_network.txt 2>&1
+                        sar -n DEV > "$elastic_folder"/sar_network.txt 2>&1
                 else
                         print_msg "'sar' command not found. Please install package 'sysstat' to collect extended system stats" "WARN"
         fi
         print_msg "Grabbing ECE logs" "INFO"
-        cd $storage_path && find . -type f \( -name "*.log" -o -name "*.ndjson" \) -mmin -$((log_hours*60)) -exec cp --preserve=timestamps --parents \{\} $elastic_folder \;
+        cd "$storage_path" && find . -type f \( -name "*.log" -o -name "*.ndjson" \) -mmin -$((log_hours*60)) -exec cp --preserve=timestamps --parents \{\} "$elastic_folder" \;
         print_msg "Checking XFS info" "INFO"
-        [[ -x "$(type -P xfs_info)" ]] && xfs_info $storage_path > $elastic_folder/xfs_info.txt 2>&1
+        [[ -x "$(type -P xfs_info)" ]] && xfs_info "$storage_path" > "$elastic_folder"/xfs_info.txt 2>&1
 }
 
 get_docker(){
-        if [ -n $1 ]
+        if [[ -n "$1" ]]; then
                 #clusterId is passed as argument - filter on it
-                then
-                        containersId=(`docker ps -a --format "{{.ID}}" --filter="name=$1" `)
-                        logNames=(`docker ps -a --format "{{.ID}}__{{.Names}}__{{.Image}}" --filter="name=$1"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g' `)
+                containersId=($(docker ps -a --format "{{.ID}}" --filter="name=$1"))
+                logNames=($(docker ps -a --format "{{.ID}}__{{.Names}}__{{.Image}}" --filter="name=$1"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g'))
                 #consider all containers
-                else
-                        containersId=(`docker ps -a --format "{{.ID}}"`)
-                        logNames=(`docker ps -a --format "{{.ID}}__{{.Names}}__{{.Image}}"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g' `)
+        else
+                containersId=($(docker ps -a --format "{{.ID}}"))
+                logNames=($(docker ps -a --format "{{.ID}}__{{.Names}}__{{.Image}}"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g'))
         fi
 
         print_msg "Grabbing docker logs..." "INFO"
         arrayLength=${#containersId[@]}
         local i=0
-        for ((; i<$arrayLength; i++))
+        for ((; i<arrayLength; i++))
         do
                 print_msg "Grabbing logs for containerId [${containersId[$i]}]" "INFO"
-                docker logs --since "${log_hours}h" ${containersId[$i]} > $docker_logs_folder/${logNames[$i]}-container.log 2>&1
+                docker logs --since "${log_hours}h" "${containersId[$i]}" > "${docker_logs_folder}/${logNames[$i]}"-container.log 2>&1
         done
 
         print_msg "Grabbing docker ps..." "INFO"
         # output of docker ps -a
-        docker ps -a > $docker_folder/ps.txt
+        docker ps -a > "$docker_folder"/ps.txt
 
         print_msg "Grabbing docker info..." "INFO"
         # output of docker info
-        docker info > $docker_folder/info.txt 2>&1
+        docker info > "$docker_folder"/info.txt 2>&1
 
         print_msg "Grabbing docker images..." "INFO"
         # output of docker info
-        docker images --all --digests > $docker_folder/images.txt 2>&1
+        docker images --all --digests > "$docker_folder"/images.txt 2>&1
 
         i=5
         print_msg "Grabbing $i repeated container stats..." "INFO"
         # sample container stats
-        while [ $i -ne 0 ] ; do date >> $docker_folder/stats_samples.txt ; print_msg "Grabbing docker stats $i" "INFO"; docker stats --no-stream >> $docker_folder/stats_samples.txt ; i=$((i-1)); done
+        while [ $i -ne 0 ] ; do date >> "$docker_folder"/stats_samples.txt ; print_msg "Grabbing docker stats $i" "INFO"; docker stats --no-stream >> "$docker_folder"/stats_samples.txt ; i=$((i-1)); done
 }
 
 encrypt_file(){
@@ -252,16 +246,16 @@ encrypt_file(){
         
         temp_keyring=$(mktemp -d)
 
-        gpg2 --homedir $temp_keyring --import $public_key_file
+        gpg2 --homedir "$temp_keyring" --import "$public_key_file"
 
-        recipient=$(gpg2 --homedir $temp_keyring -k | grep uid | grep -o '<.\+\@.\+>' | sed 's/[<>]//g' | head -n1)
+        recipient=$(gpg2 --homedir "$temp_keyring" -k | grep uid | grep -o '<.\+\@.\+>' | sed 's/[<>]//g' | head -n1)
 
-        gpg2 --homedir $temp_keyring --trust-model always --batch --recipient $recipient -e $target_file
+        gpg2 --homedir "$temp_keyring" --trust-model always --batch --recipient "$recipient" -e "$target_file"
         gpg_result=$?
         
-        rm -r $temp_keyring
+        rm -r "$temp_keyring"
 
-        return $gpg_result
+        return "$gpg_result"
 }
 
 get_zookeeper(){
@@ -272,20 +266,20 @@ get_zookeeper(){
                         die 'ERROR: "-zk|--zookeeper" requires a path for the sub-tree to dump. WARNING: Using "/" might include secret/sensitive information in the bundle.'
                 #Path for sub-tree root has been passed
                 else
-                        root_node=$2
+                        root_node="$2"
         fi
 
         if [ -n "$3" ]
                 #List of sub-trees to exclude from the bundle has been passed
                 then
-                        excluded_nodes=$3
+                        excluded_nodes="$3"
                 #No excluded sub-trees
                 else
                         excluded_nodes=","
         fi
 
         # Check that the current ECE version supports ZK dumps
-        docker run --rm $(docker inspect -f '{{ .Config.Image }}' frc-directors-director)  ls /elastic_cloud_apps/shell/scripts/dumpZkContents.sc;
+        docker run --rm "$(docker inspect -f '{{ .Config.Image }}' frc-directors-director)"  ls /elastic_cloud_apps/shell/scripts/dumpZkContents.sc;
 
         if [ "$?" -ne "0" ];
                 then
@@ -300,8 +294,8 @@ get_zookeeper(){
         #This is done outside the bundle directory to avoid accidental inclusion of
         #ZK contents in clear text within the bundle.
 
-        docker run --env SHELL_JAVA_OPTIONS="-Dfound.shell.exec=/elastic_cloud_apps/shell/scripts/dumpZkContents.sc -Dfound.shell.exec-params=pathsToSkip=$excluded_nodes;rootPath=$root_node;outputPath=/target/zkdump.zip" \
-               -v $zookeeper_cleartext_folder:/target -v ~/.found-shell:/elastic_cloud_apps/shell/.found-shell \
+        docker run --env SHELL_JAVA_OPTIONS="-Dfound.shell.exec=/elastic_cloud_apps/shell/scripts/dumpZkContents.sc -Dfound.shell.exec-params=pathsToSkip=${excluded_nodes};rootPath=${root_node};outputPath=/target/zkdump.zip" \
+               -v "$zookeeper_cleartext_folder":/target -v ~/.found-shell:/elastic_cloud_apps/shell/.found-shell \
                --env SHELL_ZK_AUTH=$(docker exec -it frc-directors-director bash -c 'echo -n $FOUND_ZK_READWRITE') \
                $(docker inspect -f '{{ range .HostConfig.ExtraHosts }} --add-host {{.}} {{ end }}' frc-directors-director) \
                --rm $(docker inspect -f '{{ .Config.Image }}' frc-directors-director) \
@@ -310,12 +304,12 @@ get_zookeeper(){
         #Cipher dump file and remove the one in clear text
 
         # gpg2 --recipient-file $public_key_path -e $zookeeper_folder/zkdump.zip #Ideally we'd use this but it requires a version not so ubiquitous.
-        encrypt_file $public_key_path $zookeeper_cleartext_folder/zkdump.zip;
+        encrypt_file "$public_key_path" "$zookeeper_cleartext_folder"/zkdump.zip;
         encryption_result=$?
         
                 # Collect the encrypted version of the ZK contents bundle and include it in the general bundle.
-                mv $zookeeper_cleartext_folder/zkdump.zip.gpg $zookeeper_folder 
-        rm -r $zookeeper_cleartext_folder # Then, delete the temporary directory.
+                mv "$zookeeper_cleartext_folder"/zkdump.zip.gpg "$zookeeper_folder "
+        rm -r "$zookeeper_cleartext_folder" # Then, delete the temporary directory.
 
         if [ "$encryption_result" -ne "0" ];
                 then
@@ -324,13 +318,12 @@ get_zookeeper(){
 }
 
 validate_http_creds(){
-        if [ -z $user ]
+        if [ -z "$user" ]
                 then missing_creds="$missing_creds user"
         fi
-        if [ -z $password ]
+        if [ -z "$password" ]
                 then missing_creds="$missing_creds password"
         fi
-
 }
 
 do_http_request(){
@@ -347,21 +340,21 @@ do_http_request(){
 
         #validation
         validate_http_creds
-        if [[ ! -z $missing_creds ]]
+        if [[ -n $missing_creds ]]
                 then
                         print_msg "Skipping HTTP request [ $path ] because of missing arguments [ $missing_creds ]" "WARN"
                 else
                         print_msg "Calling [$ece_host:$ece_port$path] with user [$user]" "INFO"
                         sleep 1
-                        STDERR=`$request 2>&1`
-                        if [ ! -s $output_file ]; then
+                        STDERR=$($request 2>&1)
+                        if [ ! -s "$output_file" ]; then
                                 print_msg "Output from API call is empty - please ensure you are connecting to a coordinator node with -e" "ERROR"
                                 print_msg "${STDERR}" "ERROR"
-                        elif grep -q "root.unauthenticated" $output_file; then
+                        elif grep -q "root.unauthenticated" "$output_file"; then
                                 print_msg "The supplied authentication is invalid - please use ECE admin user/pass" "ERROR"
                                 clean
                                 exit
-                        elif grep -q "clusters.cluster_not_found" $output_file; then
+                        elif grep -q "clusters.cluster_not_found" "$output_file"; then
                                 print_msg "Specified Cluster ID is invalid.  The Elasticsearch cluster ID can be found within the endpoint URL" "ERROR"
                         fi
         fi
@@ -371,28 +364,29 @@ process_action(){
         while :; do
                 case $1 in
                 system)
+                        verifyStoragePath
                         create_folders system
                         get_system
                         ;;
                 docker)
                         create_folders docker
-                        get_docker $cluster_id
                         ;;
                 allocators)
                         create_folders allocators
                         do_http_request GET $protocol /api/v1/platform/infrastructure/allocators $ece_port "" $elastic_folder/allocators/allocators.json
                         do_http_request GET $protocol /api/v1/platform $ece_port "" $elastic_folder/allocators/platform.json
                         do_http_request GET $protocol /api/v1/clusters/elasticsearch $ece_port "" $elastic_folder/allocators/elasticsearch-clusters.json
+                        get_docker "$cluster_id"
                         ;;
                 plan)
                         validate_http_creds
-                        if [[ -n $missing_creds ]]
+                        if [[ -n "$missing_creds" ]]
                                 then print_msg "cannot fetch cluster plan activity without specifying credentials" "WARN"
                                 else
-                                        if [ -n $cluster_id ]
+                                        if [ -n "$cluster_id" ]
                                                 then
                                                         create_folders plan
-                                                        do_http_request GET $protocol /api/v1/clusters/elasticsearch/$cluster_id/plan/activity $ece_port "" $docker_folder/plan/plan_$cluster_id.json
+                                                        do_http_request GET "$protocol" /api/v1/clusters/elasticsearch/"$cluster_id"/plan/activity "$ece_port" "" "${docker_folder}/plan/plan_${cluster_id}.json"
                                                 else
                                                         print_msg "cannot fetch cluster plan activity without specifying a cluster id. Use option -c|--cluster to specify a cluster ID"        "WARN"
                                         fi
@@ -414,7 +408,7 @@ process_action(){
                         ;;
                 zookeeper)
                         create_folders zookeeper
-                        get_zookeeper $pgp_destination_keypath $zk_root $zk_excluded
+                        get_zookeeper "$pgp_destination_keypath" "$zk_root" "$zk_excluded"
                         ;;
                 --)              # End of all options.
                         shift
@@ -431,22 +425,22 @@ print_msg(){
         #$1 msg
         #$2 sev
         local sev=
-        if [ -n $2 ]
+        if [ -n "$2" ]
                 then
-                        sev="[$2]"
+                        sev="[${2}]"
         fi
-        echo "`date` $sev:  $1"
+        echo "$(date) ${sev}:  ${1}" | tee -a "$diag_folder"/ece-diag.log
 
 }
 
 promptPassword(){
         echo -n "Enter password for ${user} : "
         read -s password
+get_fs_permissions(){
+        ls -al "$storage_path" > "$elastic_folder"/fs_permissions_storage_path.txt 2>&1
+        ls -al /mnt/data > "$elastic_folder"/fs_permissions_mnt_data.txt 2>&1
 }
 
-get_fs_permissions(){
-        ls -al $storage_path > $elastic_folder/fs_permissions_storage_path.txt 2>&1
-        ls -al /mnt/data > $elastic_folder/fs_permissions_mnt_data.txt 2>&1
 }
 
 #BEGIN
@@ -607,21 +601,59 @@ else
         fi
 fi
 
-print_msg "ECE Diagnostics" "INFO"
-sleep 1
-# go through identified actions and execute
-if [ -z "$actions" ]
-        then
-                : #do nothing
-        else
-                actions=($actions)
-                actionsLength=${#actions[@]}
 
-                for ((i=0; i<$actionsLength; i++))
-                        do
-                                process_action ${actions[$i]}
-                done
 
-fi
+runECEDiag(){
+        sleep 1
+        # go through identified actions and execute
+        if [ -z "$actions" ]
+                then
+                        : #do nothing
+                else
+                        actions=("$actions")
+                        actionsLength=${#actions[@]}
 
-create_archive && clean
+                        for ((i=0; i<actionsLength; i++))
+                                do
+                                        process_action "${actions[$i]}"
+                        done
+
+        fi
+        create_archive && clean
+}
+
+
+
+verifyStoragePath(){
+        if [[ ! -d "$storage_path" ]]; then
+                #docker inspect frc-runners-runner | grep logs:/app/logs returns :
+                #"/test/julien/elastic/10.0.2.15/services/runner/logs:/app/log",
+                local sto_path
+                sto_path="$(docker inspect frc-runners-runner 2>/dev/null | grep logs:/app/logs | cut -d ':' -f1 | cut -d '"' -f2)"
+                sto_path="$(dirname ${sto_path/\/services\/runner\/logs/})"
+                if [[ -d "${sto_path}" ]]; then
+                        print_msg "Storage path [${storage_path}] is not accessible, correcting to [${sto_path}]" "WARN"
+                        storage_path="$sto_path"
+                else 
+                        print_msg "Storage path [${storage_path}] is not accessible, found [${sto_path}] but folder not valid" "ERROR"
+                        print_msg "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic)." "INFO"
+                        clean
+                        exit 0
+                fi
+        fi
+}
+
+initiateLogFile(){
+        touch "$diag_folder"/ece-diag.log
+        print_msg "ECE Diagnostics ${ECE_DIAG_VERSION}" "INFO"
+        print_msg "Arguments used [$*]" "INFO"
+}
+
+setVariables
+
+parseParams "$@"
+
+initiateLogFile "$@"
+
+runECEDiag
+
