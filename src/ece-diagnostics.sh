@@ -725,11 +725,9 @@ parseParams(){
 runECEDiag(){
         sleep 1
         # go through identified actions and execute
-        if [ -z "$actions" ]
+        if [ -n "$actions" ]
                 then
-                        : #do nothing
-                else
-                        actions=("$actions")
+                        actions=($actions) #using word spitting
                         actionsLength=${#actions[@]}
 
                         for ((i=0; i<actionsLength; i++))
@@ -783,15 +781,15 @@ verifyStoragePath(){
 }
 
 initiateLogFile(){
+        mkdir -p "$diag_folder"
         touch "$diag_folder"/ece-diag.log
         print_msg "ECE Diagnostics ${ECE_DIAG_VERSION}" "INFO"
-        print_msg "Arguments used [$*]" "INFO"
 }
 
 setVariables
 
 parseParams "$@"
 
-initiateLogFile "$@"
+initiateLogFile
 
 runECEDiag
