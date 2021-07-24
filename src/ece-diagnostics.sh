@@ -137,6 +137,12 @@ show_help(){
         echo ""
 }
 
+get_mntr_ZK(){
+        if [[ "$(docker ps -q --filter "name=frc-zookeeper-servers-zookeeper" | wc -l)" -eq 1 ]]; then
+                mkdir -p "$elastic_folder"
+                docker exec frc-zookeeper-servers-zookeeper sh -c 'for i in $(seq 2191 2199); do echo "$(hostname) port is $i" && echo mntr | nc localhost ${i}; done' > "$elastic_folder"/zk_mntr.txt
+        fi
+}
 
 get_system(){
 
@@ -657,3 +663,4 @@ initiateLogFile "$@"
 
 runECEDiag
 
+get_mntr_ZK
