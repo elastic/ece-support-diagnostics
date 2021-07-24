@@ -123,24 +123,22 @@ show_help(){
         echo "--zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks"
         echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
         echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
-        # echo "-c|--cluster <clusterID> #collects cluster plan and info for a given cluster (ECE user/pass required). Also restricts -d|--docker action to a specific cluster"
+        echo "-de|--deployment <deploymentID2,deploymentID2> #collects deployment historic plan activity logs (ECE username required), comma separated value allowed to pass multiple deployments"
         # echo "-a|--allocators #gathers allocators information (ECE user/pass required)"
         echo "-u|--username <username>"
         echo "-p|--password <password>"
         echo ""
         echo "Sample usage:"
         echo "\"./diagnostics.sh -d -s\" #collects system and docker level info"
-        echo "\"./diagnostics.sh -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects ECE APIs information"
-        # echo "\"./diagnostics.sh -e 192.168.1.42 -x 12409 -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects allocators information using custom host and port"
-        # echo "\"./diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -d -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info and docker info only for the specified cluster ID"
-        # echo "\"./diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects cluster plan,info for the specified cluster ID"
+        echo "\"./diagnostics.sh -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects default ECE APIs information"
+        echo "\"./diagnostics.sh -de e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects default APIs information plus deployment plan"
         echo ""
 }
 
 get_mntr_ZK(){
         if [[ "$(docker ps -q --filter "name=frc-zookeeper-servers-zookeeper" | wc -l)" -eq 1 ]]; then
                 mkdir -p "$elastic_folder"
-                docker exec frc-zookeeper-servers-zookeeper sh -c 'for i in $(seq 2191 2199); do echo "$(hostname) port is $i" && echo mntr | nc localhost ${i}; done' > "$elastic_folder"/zk_mntr.txt
+                docker exec frc-zookeeper-servers-zookeeper sh -c 'for i in $(seq 2191 2199); do echo mntr | nc localhost ${i} 2>/dev/null; done' > "$elastic_folder"/zk_mntr.txt
         fi
 }
 
@@ -341,6 +339,8 @@ do_http_request(){
         args=$5
         output_file=$6
 
+        # echo "method[${method}] protocolrequest[${protocolrequest}] path[${path}] ece_port[${ece_port}] args[${args}] output_file[${output_file}]"
+
         #build request
         request="curl -s -S -X$method -u $user:$password $protocolrequest://$ece_host:$ece_port$path -o $output_file"
 
@@ -376,41 +376,7 @@ process_action(){
                         ;;
                 docker)
                         create_folders docker
-                        ;;
-                allocators)
-                        create_folders allocators
-                        do_http_request GET $protocol /api/v1/platform/infrastructure/allocators $ece_port "" $elastic_folder/allocators/allocators.json
-                        do_http_request GET $protocol /api/v1/platform $ece_port "" $elastic_folder/allocators/platform.json
-                        do_http_request GET $protocol /api/v1/clusters/elasticsearch $ece_port "" $elastic_folder/allocators/elasticsearch-clusters.json
                         get_docker "$cluster_id"
-                        ;;
-                plan)
-                        validate_http_creds
-                        if [[ -n "$missing_creds" ]]
-                                then print_msg "cannot fetch cluster plan activity without specifying credentials" "WARN"
-                                else
-                                        if [ -n "$cluster_id" ]
-                                                then
-                                                        create_folders plan
-                                                        do_http_request GET "$protocol" /api/v1/clusters/elasticsearch/"$cluster_id"/plan/activity "$ece_port" "" "${docker_folder}/plan/plan_${cluster_id}.json"
-                                                else
-                                                        print_msg "cannot fetch cluster plan activity without specifying a cluster id. Use option -c|--cluster to specify a cluster ID"        "WARN"
-                                        fi
-                        fi
-                        ;;
-                cluster_info)
-                        validate_http_creds
-                        if [[ -n $missing_creds ]]
-                                then print_msg "cannot fetch cluster info plan without specifying credentials" "WARN"
-                                else
-                                        if [ -n $cluster_id ]
-                                                then
-                                                        create_folders cluster_info
-                                                        do_http_request GET $protocol "/api/v1/clusters/elasticsearch/$cluster_id" $ece_port "?show_metadata=true&show_plans=true" $docker_folder/cluster_info/cluster_info_$cluster_id.json
-                                                else
-                                                        print_msg "cannot fetch cluster info without specifying a cluster id. Use option -c|--cluster to specify a cluster ID" "WARN"
-                                        fi
-                        fi
                         ;;
                 zookeeper)
                         create_folders zookeeper
@@ -439,30 +405,193 @@ print_msg(){
 
 }
 
-promptPassword(){
-        echo -n "Enter password for ${user} : "
-        read -s password
 get_fs_permissions(){
         ls -al "$storage_path" > "$elastic_folder"/fs_permissions_storage_path.txt 2>&1
         ls -al /mnt/data > "$elastic_folder"/fs_permissions_mnt_data.txt 2>&1
 }
 
+api_get_platform(){
+        do_http_request GET "$protocol" /api/v1//platform "$ece_port" "" "$elastic_folder"/platform/platform.json
 }
 
-#BEGIN
+#compare 2 versions, -1 when lower, 1 when higher, 0 when equal
+function vercomp () {
+    if [[ $1 == $2 ]]
+    then
+        return 0
+    fi
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+    # fill empty fields in ver1 with zeros
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
+    do
+        ver1[i]=0
+    done
+    for ((i=0; i<${#ver1[@]}; i++))
+    do
+        if [[ -z ${ver2[i]} ]]
+        then
+            # fill empty fields in ver2 with zeros
+            ver2[i]=0
+        fi
+        if ((10#${ver1[i]} > 10#${ver2[i]}))
+        then
+            vercompare=1
+        fi
+        if ((10#${ver1[i]} < 10#${ver2[i]}))
+        then
+            vercompare=-1
+        fi
+    done
+    return 0
+}
 
-# no arguments -> show help
-if [ "$#" -eq 0 ]; then
-        show_help
-# arguments - parse them
-else
-        while :; do
-                case $1 in
-                -s|--system)
-                        #gather system data
-                        actions="$actions system"
-                        ;;
-                -lh|--log-filter-hours)
+extractPlatformVersion(){
+        ece_version="$(grep version ${elastic_folder}/platform/platform.json | head -1 | cut -d ":" -f2 | cut -d '"' -f2)"
+        if [[ ! "$ece_version" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+                print_msg "Version could not be found [$ece_version]"
+                ece_version=
+        fi
+}
+
+addApiCall(){
+        api_url[$arr]="$1"
+        api_file[$arr]="$2"
+        api_min[$arr]="${3:-2.0.0}"
+        api_max[$arr]="$4"
+        (( arr=arr+1 ))
+}
+
+apis_platform(){
+        mkdir -p "${elastic_folder}/platform"
+        # api_get_platform
+        do_http_request GET "$protocol" /api/v1//platform "$ece_port" "" "$elastic_folder"/platform/platform.json
+        extractPlatformVersion
+        mkdir -p "${elastic_folder}/platform/license"
+
+        arr=0
+
+        addApiCall '/api/v1//platform/license' "${elastic_folder}/platform/license/license.json"
+
+        mkdir -p "${elastic_folder}/platform/infrastructure"
+        addApiCall '/api/v1/platform/infrastructure/allocators' "${elastic_folder}/platform/infrastructure/allocators.json"
+        addApiCall '/api/v1//platform/infrastructure/blueprinter/roles' "${elastic_folder}/platform/infrastructure/roles.json"
+        addApiCall '/api/v1//platform/infrastructure/constructors' "${elastic_folder}/platform/infrastructure/constructors.json"
+        addApiCall '/api/v1//platform/infrastructure/proxies' "${elastic_folder}/platform/infrastructure/proxies.json"
+        addApiCall '/api/v1/platform/infrastructure/runners' "${elastic_folder}/platform/infrastructure/runners.json"
+
+        mkdir -p "${elastic_folder}/platform/configuration"
+        addApiCall '/api/v1//platform/configuration/instances?show_deleted=false' "${elastic_folder}/platform/configuration/instances.json"
+        addApiCall '/api/v1//platform/configuration/templates/deployments?show_instance_configurations=false' "${elastic_folder}/platform/configuration/deployment_templates.json"
+        addApiCall '/api/v1//platform/configuration/snapshots/repositories' "${elastic_folder}/platform/configuration/snapshot_repositories.json"
+        addApiCall '/api/v1//platform/configuration/store' "${elastic_folder}/platform/configuration/store.json"
+        addApiCall '/api/v1//platform/configuration/security/realms' "${elastic_folder}/platform/configuration/realms.json"
+        # addApiCall '/api/v1//platform/configuration/security/deployment' "${elastic_folder}/platform/configuration/security.json"
+}
+
+apis_stacks(){
+        mkdir -p "${elastic_folder}/stacks"
+        addApiCall '/api/v1//stack/versions' "${elastic_folder}/stacks/versions.json"
+}
+
+apis_users(){
+        mkdir -p "${elastic_folder}/users"
+        addApiCall '/api/v1//users' "${elastic_folder}/users/users.json"
+}
+
+apis_deployments(){
+        mkdir -p "${elastic_folder}/deployments"
+        addApiCall '/api/v1//deployments' "${elastic_folder}/deployments/deployments.json"
+}
+
+apis_v0(){
+        mkdir -p "${elastic_folder}/v0containersets"
+        addApiCall '/api/v0/regions/ece-region/container-sets/allocators' "${elastic_folder}/v0containersets/allocators.json"
+        addApiCall '/api/v0/regions/ece-region/container-sets/proxies' "${elastic_folder}/v0containersets/proxies.json"
+        addApiCall '/api/v0/regions/ece-region/container-sets/zookeeper-servers' "${elastic_folder}/v0containersets/zookeeper-servers.json"
+}
+
+prepare_apis_arrays(){
+        #these just build list of APIs in 4 arrays : api_url, api_file, api_min, api_max
+        apis_platform
+        apis_stacks
+        apis_users
+        apis_deployments
+        apis_v0
+}
+
+run_api(){
+        #TODO: if api_file is empty, comput from api_url
+        #TODO: add "mkdir -p" here
+        do_http_request GET "$protocol" "${api_url[$a]}" "$ece_port" "" "${api_file[$a]}"
+}
+
+run_apis(){
+        #iterates through arrays and run API when ece_version match min or/and max version
+        for ((a=0;a<${#api_url[@]};a++))
+        do
+                if [[ "${api_min[$a]}" = "" ]]; then
+                        if [[ -z "${api_max[$a]}" ]]; then #no min, no max
+                                run_api
+                        else  #no min, max
+                                vercomp "$ece_version" "${api_max[$a]}"
+                                if [[ $? -le 0 ]]; then
+                                        run_api
+                                fi
+                        fi
+                else
+                        if [[ -z "${api_max[$a]}" ]]; then #min, no max
+                                vercomp "$ece_version" "${api_min[$a]}"
+                                if [[ $? -ge 0 ]]; then
+                                        run_api
+                                fi
+                        else  #min, max
+                                vercomp "$ece_version" "${api_max[$a]}"
+                                if [[ $? -le 0 ]]; then
+                                        vercomp "$ece_version" "${api_min[$a]}"
+                                        if [[ $? -ge 0 ]]; then
+                                                run_api
+                                        fi
+                                fi
+                        fi
+
+                fi
+        done 
+}
+
+collect_apis_data(){
+        prepare_apis_arrays
+        run_apis
+}
+
+promptPassword(){
+        echo -n "Enter password for ${user} : "
+        read -s -r password
+}
+
+parseParams(){
+      # no arguments -> show help
+        if [ "$#" -eq 0 ]; then
+                show_help
+        # arguments - parse them
+        else
+                while :; do
+                        case $1 in
+                        -sp|--storage-path)
+                                #changes -s behaviour by
+                                #overriding default $storage_path value (/mnd/data/elastic)
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-sp|--storage-path" requires a valid full filesystem path to custom storage'
+                                else
+                                        storage_path=$2
+                                        shift
+                                fi
+                                ;;
+                        -s|--system)
+                                #gather system data
+                                actions="$actions system"
+                                ;;
+                        -lh|--log-filter-hours)
                                 if [ -z "$2" ]; then
                                         die 'ERROR: "-sf|--log-filter-hours" requires a valid number of hours'
                                 else
@@ -470,142 +599,126 @@ else
                                         shift
                                 fi
                                 ;;
-                -sp|--storage-path)
-                        #changes -s behaviour by
-                        #overriding default $storage_path value (/mnd/data/elastic)
-                        if [ -z "$2" ]; then
-                                die 'ERROR: "-sp|--storage-path" requires a valid full filesystem path to custom storage'
-                        else
-                                storage_path=$2
-                                shift
-                        fi
-                        ;;
-                -o|--output-path)
-                        if [ -z "$2" ]; then
-                                die 'ERROR: "-o|--output-path" requires a valid full filesystem path'
-                        else
-                                output_path=$2
-                                diag_folder=$output_path/$diag_name
-                                elastic_folder=$diag_folder/elastic
-                                docker_folder=$diag_folder/docker
-                                docker_logs_folder=$docker_folder/logs
-                                shift
-                        fi
-                        ;;
-                -e|--ecehost)
-                        if [ -z "$2" ]; then
-                                die 'ERROR: "-e|--ecehost" requires a hostname/ip value.'
-                        else
-                                ece_host=$2
-                                shift
-                        fi
-                        ;;
-                -a|--allocators)
-                        #gather allocators data
-                        actions="$actions allocators"
-                        ;;
+                        -o|--output-path)
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-o|--output-path" requires a valid full filesystem path'
+                                else
+                                        output_path=$2
+                                        diag_folder=$output_path/$diag_name
+                                        elastic_folder=$diag_folder/elastic
+                                        docker_folder=$diag_folder/docker
+                                        docker_logs_folder=$docker_folder/logs
+                                        shift
+                                fi
+                                ;;
+                        -e|--ecehost)
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-e|--ecehost" requires a hostname/ip value.'
+                                else
+                                        ece_host=$2
+                                        shift
+                                fi
+                                ;;
                         -u|--username)
-                        #user for issuing HTTP requests
-                        if [ -z "$2" ]; then
-                                die 'ERROR: "-u|--username" requires a username value.'
-                        else
-                                user=$2
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-u|--user" requires a username value.'
+                                else
+                                        user=$2
+                                        shift
+                                fi
+                                ;;
+                        -p|--password)
+                                #password for issuing HTTP requests
+                                if [ -n "$2" ]; then
+                                        password=$2
+                                        shift
+                                fi
+                                ;;
+                        -x|--port)
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-x|--port" requires a port value.'
+                                else
+                                        ece_port=$2
+                                        shift
+                                fi
+                                ;;
+                        -d|--docker)
+                                #gather docker data
+                                actions="$actions docker"
+                                ;;
+                        -de|--deployment)
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-de|--deployment" requires a value (comma separated for multiple deployment IDs)'
+                                else
+                                        deployments=$2
+                                        shift
+                                fi
+                                ;;
+                        -y|--protocol)
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-y|--protocol" requires a protocol value.'
+                                else
+                                        protocol=$2
+                                        shift
+                                fi
+                                ;;
+                        -zk|--zookeeper)
+                                # First check PGP tools are available
+                                gpg2 --help 2>/dev/null > /dev/null;
+                                if [ "$?" -ne "0" ]; then
+                                        die 'ERROR: "-zk|--zookeeper" requires `gnupg2` to be installed in the system.'
+                                fi
+                                
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-zk|--zookeeper" requires a PGP destination public key.'
+                                else
+                                        setVariablesZK
+                                        pgp_destination_keypath=$2
+                                        actions="$actions zookeeper"
+                                        shift
+                                fi
+                                ;;
+                        -zk-path|--zookeeper-path)
+                                # Sets Zookeeper target sub-tree
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: This options requires a path string'
+                                else
+                                        zk_root=$2
+                                        shift
+                                fi
+                                ;;
+                        -zk-excluded|--zookeeper-excluded)
+                                # Sets Zookeeper exclusion paths
+                                if [ -n "$2" ]; then
+                                        zk_excluded="$zk_excluded,$2"
+                                        shift
+                                fi
+                                ;;
+                        --zookeeper-excluded-insecure)
+                                # Sets Zookeeper exclusion paths removing defaults Secret/Sensitive exclusions
+                                if [ -n "$2" ]; then
+                                        print_msg "WARNING!! This option may lead to the inclusion of secrets and sensitive information within the bundle."
+                                        zk_excluded="$2"
+                                        shift
+                                fi
+                                ;;
+                        --)             # End of all options.
                                 shift
-                        fi
-                        ;;
-                -p|--password)
-                        #password for issuing HTTP requests
-                        if [ -z "$2" ]; then
-                                die 'ERROR: "-p|--password" requires a password value.'
-                        else
-                                password=$2
-                                shift
-                        fi
-                        ;;
-                -x|--port)
-                        if [ -z "$2" ]; then
-                                die 'ERROR: "-x|--port" requires a port value.'
-                        else
-                                ece_port=$2
-                                shift
-                        fi
-                        ;;
-                -d|--docker)
-                        #gather docker data
-                        actions="$actions docker"
-                        ;;
-                -y|--protocol)
-                        if [ -z "$2" ]; then
-                                die 'ERROR: "-y|--protocol" requires a protocol value.'
-                        else
-                                protocol=$2
-                                shift
-                        fi
-                        ;;
-                -c|--cluster)
-                        if [ -z "$2" ]; then
-                                die 'ERROR: "-c|--cluster" requires a clusterId value.'
-                        else
-                                cluster_id=$2
-                                actions="$actions plan cluster_info"
-                                shift
-                        fi
-                        ;;
-                -zk|--zookeeper)
-                        # First check PGP tools are available
-                        gpg2 --help 2>/dev/null > /dev/null;
-                        if [ "$?" -ne "0" ]; then
-                                die 'ERROR: "-zk|--zookeeper" requires `gnupg2` to be installed in the system.'
-                        fi
-                        
-                        if [ -z "$2" ]; then
-                                die 'ERROR: "-zk|--zookeeper" requires a PGP destination public key.'
-                        else
-                                pgp_destination_keypath=$2
-                                actions="$actions zookeeper"
-                                shift
-                        fi
-                        ;;
-                -zk-path|--zookeeper-path)
-                        # Sets Zookeeper target sub-tree
-                        if [ -z "$2" ]; then
-                                die 'ERROR: This options requires a path string'
-                        else
-                                zk_root=$2
-                                shift
-                        fi
-                        ;;
-                -zk-excluded|--zookeeper-excluded)
-                        # Sets Zookeeper exclusion paths
-                        if [ -n "$2" ]; then
-                                zk_excluded="$zk_excluded,$2"
-                                shift
-                        fi
-                        ;;
-                --zookeeper-excluded-insecure)
-                        # Sets Zookeeper exclusion paths removing defaults Secret/Sensitive exclusions
-                        if [ -n "$2" ]; then
-                                print_msg "WARNING!! This option may lead to the inclusion of secrets and sensitive information within the bundle."
-                                zk_excluded="$2"
-                                shift
-                        fi
-                        ;;
-                --)             # End of all options.
+                                break
+                                ;;
+                        -?*)
+                                printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
+                                ;;
+                        *)              # Default case: No more options, so break out of the loop.
+                                break
+                        esac
                         shift
-                        break
-                        ;;
-                -?*)
-                        printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
-                        ;;
-                *)              # Default case: No more options, so break out of the loop.
-                        break
-                esac
-                shift
-        done
+                done
+        fi
         if [[ -n "$user" ]] && [[ -z "$password" ]]; then
                 promptPassword
         fi
-fi
+}
 
 
 
@@ -620,20 +733,40 @@ runECEDiag(){
                         actionsLength=${#actions[@]}
 
                         for ((i=0; i<actionsLength; i++))
-                                do
-                                        process_action "${actions[$i]}"
+                        do
+                                process_action "${actions[$i]}"
                         done
 
         fi
+        if [[ -n "$user" ]]; then
+                collect_apis_data
+        fi
+        #This code iterate deployment ids without plan acitivty logs
+        if [[ -f "${elastic_folder}/deployments/deployments.json" ]]; then
+                deployment_ids=$(grep -e '^      \"id\"' "${elastic_folder}/deployments/deployments.json" | cut -d '"' -f4)
+                deployment_ids=(${deployment_ids})
+                for deployment_id in "${deployment_ids[@]}"
+                do
+                        do_http_request GET "$protocol" "/api/v1//deployments/${deployment_id}?show_security=false&show_metadata=true&show_plans=true&show_plan_logs=false&show_plan_history=false&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=0&show_settings=true&enrich_with_template=false" "$ece_port" "" "${elastic_folder}/deployments/${deployment_id}.json"
+                done
+        fi
+        #this call return historical plan activity logs (can be many Mb per deployment)
+        if [[ -n "$deployments" ]]; then
+                deployments=($(printf "$deployments" | tr "," " "))
+                for ((i=0; i<actionsLength; i++))
+                do
+                        do_http_request GET "$protocol" "/api/v1//deployments/${deployments[$i]}?show_security=false&show_metadata=true&show_plans=true&show_plan_logs=true&show_plan_history=true&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=3&show_settings=true&enrich_with_template=true" "$ece_port" "" "${elastic_folder}/deployments/${deployments[$i]}-detailed.json"
+                done
+        fi
+        get_mntr_ZK
         create_archive && clean
 }
 
 
 
 verifyStoragePath(){
+        #function will attempt to correct storage location
         if [[ ! -d "$storage_path" ]]; then
-                #docker inspect frc-runners-runner | grep logs:/app/logs returns :
-                #"/test/julien/elastic/10.0.2.15/services/runner/logs:/app/log",
                 local sto_path
                 sto_path="$(docker inspect frc-runners-runner 2>/dev/null | grep logs:/app/logs | cut -d ':' -f1 | cut -d '"' -f2)"
                 sto_path="$(dirname ${sto_path/\/services\/runner\/logs/})"
@@ -662,5 +795,3 @@ parseParams "$@"
 initiateLogFile "$@"
 
 runECEDiag
-
-get_mntr_ZK
