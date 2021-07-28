@@ -21,6 +21,7 @@ setVariables(){
         missing_creds=
         actions=
         storage_path=/mnt/data/elastic
+        arr=0 #used to store APIs in 4 arrays
 } 
 
 setVariablesZK(){
@@ -73,6 +74,12 @@ create_folders(){
                 zookeeper)
                         mkdir -p "$zookeeper_folder"
                         ;;
+                plan)
+                        mkdir -p "$elastic_folder"/plan/
+                        ;;
+                cluster_info)
+                        mkdir -p "$elastic_folder"/cluster_info/
+                        ;;
                 --) # End of all options.
                         shift
                         break
@@ -124,7 +131,6 @@ show_help(){
         echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
         echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
         echo "-de|--deployment <deploymentID2,deploymentID2> #collects deployment historic plan activity logs (ECE username required), comma separated value allowed to pass multiple deployments"
-        # echo "-a|--allocators #gathers allocators information (ECE user/pass required)"
         echo "-u|--username <username>"
         echo "-p|--password <password>"
         echo ""
@@ -378,6 +384,34 @@ process_action(){
                         create_folders docker
                         get_docker "$cluster_id"
                         ;;
+                plan)
+                        validate_http_creds
+                        if [[ -n "$missing_creds" ]]
+                                then print_msg "cannot fetch cluster plan activity without specifying credentials" "WARN"
+                                else
+                                        if [ -n "$cluster_id" ]
+                                                then
+                                                        create_folders plan
+                                                        addApiCall "/api/v1/clusters/elasticsearch/${cluster_id}/plan/activity" "${elastic_folder}/plan/plan_${cluster_id}.json"
+                                                else
+                                                        print_msg "cannot fetch cluster plan activity without specifying a cluster id. Use option -c|--cluster to specify a cluster ID" "WARN"
+                                        fi
+                        fi
+                        ;;
+                cluster_info)
+                        validate_http_creds
+                        if [[ -n "$missing_creds" ]]
+                                then print_msg "cannot fetch cluster info plan without specifying credentials" "WARN"
+                                else
+                                        if [ -n "$cluster_id" ]
+                                                then
+                                                        create_folders cluster_info
+                                                        addApiCall "/api/v1/clusters/elasticsearch/${cluster_id}?show_metadata=true&show_plans=true&show_security=false" "${elastic_folder}/cluster_info/cluster_info_${cluster_id}.json"
+                                                else
+                                                        print_msg "cannot fetch cluster info without specifying a cluster id. Use option -c|--cluster to specify a cluster ID" "WARN"
+                                        fi
+                        fi
+                        ;;
                 zookeeper)
                         create_folders zookeeper
                         get_zookeeper "$pgp_destination_keypath" "$zk_root" "$zk_excluded"
@@ -469,8 +503,6 @@ apis_platform(){
         extractPlatformVersion
         mkdir -p "${elastic_folder}/platform/license"
 
-        arr=0
-
         addApiCall '/api/v1//platform/license' "${elastic_folder}/platform/license/license.json"
 
         mkdir -p "${elastic_folder}/platform/infrastructure"
@@ -483,7 +515,6 @@ apis_platform(){
         mkdir -p "${elastic_folder}/platform/configuration"
         addApiCall '/api/v1//platform/configuration/instances?show_deleted=false' "${elastic_folder}/platform/configuration/instances.json"
         addApiCall '/api/v1//platform/configuration/templates/deployments?show_instance_configurations=false' "${elastic_folder}/platform/configuration/deployment_templates.json"
-        addApiCall '/api/v1//platform/configuration/snapshots/repositories' "${elastic_folder}/platform/configuration/snapshot_repositories.json"
         addApiCall '/api/v1//platform/configuration/store' "${elastic_folder}/platform/configuration/store.json"
         addApiCall '/api/v1//platform/configuration/security/realms' "${elastic_folder}/platform/configuration/realms.json"
         # addApiCall '/api/v1//platform/configuration/security/deployment' "${elastic_folder}/platform/configuration/security.json"
@@ -619,6 +650,9 @@ parseParams(){
                                         shift
                                 fi
                                 ;;
+                        -a|--allocator)
+                                print_msg '"-a|--allocator" option is deprecated and will be collected'
+                                ;;
                         -u|--username)
                                 if [ -z "$2" ]; then
                                         die 'ERROR: "-u|--user" requires a username value.'
@@ -662,6 +696,16 @@ parseParams(){
                                         shift
                                 fi
                                 ;;
+                        -c|--cluster)
+                        if [ -z "$2" ]; then
+                                die 'ERROR: "-c|--cluster" requires a clusterId value.'
+                        else
+                                cluster_id=$2
+                                actions="$actions plan cluster_info"
+                                print_msg '"-c|--cluster" option is deprecated, prefer "-de|--deployment" instead' "WARN"
+                                shift
+                        fi
+                        ;;
                         -zk|--zookeeper)
                                 # First check PGP tools are available
                                 gpg2 --help 2>/dev/null > /dev/null;
@@ -739,7 +783,7 @@ runECEDiag(){
         if [[ -n "$user" ]]; then
                 collect_apis_data
         fi
-        #This code iterate deployment ids without plan acitivty logs
+        #This code iterate deployment ids without plan activity logs
         if [[ -f "${elastic_folder}/deployments/deployments.json" ]]; then
                 deployment_ids=$(grep -e '^      \"id\"' "${elastic_folder}/deployments/deployments.json" | cut -d '"' -f4)
                 deployment_ids=(${deployment_ids})
