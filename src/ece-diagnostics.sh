@@ -406,7 +406,7 @@ process_action(){
                                         if [ -n "$cluster_id" ]
                                                 then
                                                         create_folders cluster_info
-                                                        addApiCall "/api/v1/clusters/elasticsearch/${cluster_id}?show_metadata=true&show_plans=true&show_security=false" "${elastic_folder}/cluster_info/cluster_info_${cluster_id}.json"
+                                                        addApiCall "/api/v1/clusters/elasticsearch/${cluster_id}?show_metadata=false&show_plans=true&show_security=false" "${elastic_folder}/cluster_info/cluster_info_${cluster_id}.json"
                                                 else
                                                         print_msg "cannot fetch cluster info without specifying a cluster id. Use option -c|--cluster to specify a cluster ID" "WARN"
                                         fi
@@ -789,7 +789,7 @@ runECEDiag(){
                 deployment_ids=(${deployment_ids})
                 for deployment_id in "${deployment_ids[@]}"
                 do
-                        do_http_request GET "$protocol" "/api/v1//deployments/${deployment_id}?show_security=false&show_metadata=true&show_plans=true&show_plan_logs=false&show_plan_history=false&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=0&show_settings=true&enrich_with_template=false" "$ece_port" "" "${elastic_folder}/deployments/${deployment_id}.json"
+                        do_http_request GET "$protocol" "/api/v1//deployments/${deployment_id}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=false&show_plan_history=false&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=0&show_settings=true&enrich_with_template=false" "$ece_port" "" "${elastic_folder}/deployments/${deployment_id}.json"
                 done
         fi
         #this call return historical plan activity logs (can be many Mb per deployment)
@@ -798,7 +798,7 @@ runECEDiag(){
                 deploymentsLength=${#deployments[@]}
                 for ((i=0; i<deploymentsLength; i++))
                 do
-                        do_http_request GET "$protocol" "/api/v1//deployments/${deployments[$i]}?show_security=false&show_metadata=true&show_plans=true&show_plan_logs=true&show_plan_history=true&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=3&show_settings=true&enrich_with_template=true" "$ece_port" "" "${elastic_folder}/deployments/${deployments[$i]}-detailed.json"
+                        do_http_request GET "$protocol" "/api/v1//deployments/${deployments[$i]}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=true&show_plan_history=true&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=3&show_settings=true&enrich_with_template=true" "$ece_port" "" "${elastic_folder}/deployments/${deployments[$i]}-detailed.json"
                 done
         fi
         get_mntr_ZK
