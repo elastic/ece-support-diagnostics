@@ -13,6 +13,13 @@ promptECEVersion(){
 	fi
 }
 
+verifyECEVersionMatch(){
+	if [[ ! "$(cat ${DIR}/ece-diagnostics.sh | grep -c ECE_DIAG_VERSION=${ECE_VERSION})" -eq 1 ]]; then
+		echo "ERROR: Version specified [$ECE_VERSION] does not match ece-diagnostics.sh"
+		exit 0
+	fi
+}
+
 findScriptLocation(){
 	DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 }
@@ -33,15 +40,15 @@ createZip(){
 	cd "$mytmpdir" && zip -r "ece-support-diagnostics-v${ECE_VERSION}-dist.zip" "ece-support-diagnostics-v${ECE_VERSION}" 
 	tar -czf "ece-support-diagnostics-v${ECE_VERSION}-dist.tar.gz" "ece-support-diagnostics-v${ECE_VERSION}" 
 	echo "RELEASE FILES : ${mytmpdir}/ece-support-diagnostics-v${ECE_VERSION}-dist.zip ece-support-diagnostics-v${ECE_VERSION}-dist.tar.gz"
-	mv -f "${mytmpdir}/ece-support-diagnostics-v${ECE_VERSION}-dist.tar.gz" ~/Downloads
 }
 
 cleanup(){
 	rm -rf "$output_folder" "ece-support-diagnostics-v${ECE_VERSION}"
 }
 
-promptECEVersion
 findScriptLocation
+promptECEVersion
+verifyECEVersionMatch
 compileGo
 addScript
 createZip
