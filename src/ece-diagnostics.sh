@@ -3,6 +3,9 @@
 ECE_DIAG_VERSION=2.0.0
 
 setVariables(){
+        #location of scripts
+        DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
         output_path=/tmp
         diag_name=ece_diag_$(hostname)_$(date "+%d_%b_%Y_%H_%M_%S")
         diag_folder=$output_path/$diag_name
@@ -146,6 +149,32 @@ get_mntr_ZK(){
                 mkdir -p "$elastic_folder"
                 docker exec frc-zookeeper-servers-zookeeper sh -c 'for i in $(seq 2191 2199); do echo mntr | nc localhost ${i} 2>/dev/null; done' > "$elastic_folder"/zk_mntr.txt
         fi
+}
+
+get_certificate_srv(){
+        if [[ -f "$DIR"/displaySrvCertExpiration ]]; then
+                print_msg "Getting certificate expiration for [${ece_host}:12443]"
+                bash -c "$DIR"/displaySrvCertExpiration -h "$ece_host" -p 12443 2>/dev/null > "$elastic_folder"/certs/coordinator_12443.json
+        else
+                print_msg "Binary missing [${DIR}/displaySrvCertExpiration]" "WARN"
+        fi
+}
+
+get_certificate_files(){
+        if [[ -f "$DIR"/displayFileCertExpiration ]]; then
+                find "$storage_path" -type f -name *.pem -exec "${DIR}"/displayFileCertExpiration -f \{\} >> "${elastic_folder}/certs/pem_files_expiration.json" \;
+        else
+                print_msg "Binary missing [${DIR}/displayFileCertExpiration]" "WARN"
+        fi
+}
+
+
+get_certificate_expiration(){
+        mkdir -p "$elastic_folder"/certs
+        if [[ -n "$user" ]]; then
+                get_certificate_srv
+        fi
+        get_certificate_files
 }
 
 get_system(){
@@ -370,7 +399,7 @@ do_http_request(){
                                 print_msg "Specified Cluster ID is invalid.  The Elasticsearch cluster ID can be found within the endpoint URL" "ERROR"
                         fi
         fi
-}
+} 
 
 process_action(){
         while :; do
@@ -471,10 +500,12 @@ function vercomp () {
         if ((10#${ver1[i]} > 10#${ver2[i]}))
         then
             vercompare=1
+            return 1
         fi
         if ((10#${ver1[i]} < 10#${ver2[i]}))
         then
             vercompare=-1
+            return -1
         fi
     done
     return 0
@@ -802,6 +833,7 @@ runECEDiag(){
                 done
         fi
         get_mntr_ZK
+        get_certificate_expiration
         create_archive && clean
 }
 

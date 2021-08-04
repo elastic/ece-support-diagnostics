@@ -5,14 +5,13 @@
 ECE_DIAG_VERSION=2.0.0
 ```
 
-2- Create a zip file for the release with version : 
+2- Compile golang and prepare zip and tar.gz binary - you will be prompted for version, e.g. `2.0.0` (use same version as the code) : 
 ```
-version=2.0.0
 cd src
-zip "$HOME/ece-support-diagnostics-v${version}.zip" ece-diagnostics.sh
+./prepareRelease.sh
 ```
 
-3- Create new release by uploading the zip file and using same version tag
+3- Create new release by uploading the tar.gz and zip files and using same version tag
 
 
 ## testing
