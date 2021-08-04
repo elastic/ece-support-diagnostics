@@ -22,12 +22,15 @@ func main() {
     flag.Parse() 
 
     fmt.Printf(`{ "hostname" : "` + hname + `", "port" : "` + pname + `"`)
-	conn, err := tls.Dial("tcp", hname + ":" + pname, nil)
+    conf := &tls.Config{
+	    InsecureSkipVerify: true,
+	}
+	conn, err := tls.Dial("tcp", hname + ":" + pname, conf)
 	if err != nil {
 		fmt.Printf(", \"message\" : \"Server doesn't support SSL certificate err:\\n" + removeLBR(err.Error()) + `"`)
 	} else {
 		expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
-		fmt.Printf(", \"Issuer\": \"%s\", \"Expiry\": \"%v\"", conn.ConnectionState().PeerCertificates[0].Issuer, expiry)
+		fmt.Printf(", \"Issuer\": \"%s\", \"NotAfter\": \"%v\"", conn.ConnectionState().PeerCertificates[0].Issuer, expiry)
 	}
 	fmt.Printf(" }\n")
 }

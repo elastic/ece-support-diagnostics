@@ -153,8 +153,8 @@ get_mntr_ZK(){
 
 get_certificate_srv(){
         if [[ -f "$DIR"/displaySrvCertExpiration ]]; then
-                print_msg "Getting certificate expiration for [${ece_host}:12443]"
-                bash -c "$DIR"/displaySrvCertExpiration -h "$ece_host" -p 12443 2>/dev/null > "$elastic_folder"/certs/coordinator_12443.json
+                print_msg "Getting certificate expiration for [${ece_host}:12443]" "INFO"
+                bash -c "${DIR}/displaySrvCertExpiration -h ${ece_host} -p 12443 2>/dev/null" > "$elastic_folder"/certs/coordinator_12443.json
         else
                 print_msg "Binary missing [${DIR}/displaySrvCertExpiration]" "WARN"
         fi
@@ -162,7 +162,12 @@ get_certificate_srv(){
 
 get_certificate_files(){
         if [[ -f "$DIR"/displayFileCertExpiration ]]; then
+                print_msg "Getting certificate expiration for PEM files" "INFO"
+                echo '[' > "${elastic_folder}/certs/pem_files_expiration.json"
                 find "$storage_path" -type f -name *.pem -exec "${DIR}"/displayFileCertExpiration -f \{\} >> "${elastic_folder}/certs/pem_files_expiration.json" \;
+                #remove last character which may be a coma (to obtain valid json array) or newline in case of empty set
+                truncate -s-1 "${elastic_folder}/certs/pem_files_expiration.json"
+                echo ' ]' >> "${elastic_folder}/certs/pem_files_expiration.json"
         else
                 print_msg "Binary missing [${DIR}/displayFileCertExpiration]" "WARN"
         fi
