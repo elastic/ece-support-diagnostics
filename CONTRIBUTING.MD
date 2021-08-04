@@ -5,14 +5,13 @@
 ECE_DIAG_VERSION=2.0.0
 ```
 
-2- Compile golang and prepare zip and tar.gz binary - you will be prompted for version, e.g. `2.0.0` (use same version as the code) : 
+2- Compile golang programs for Linux/amd64 (using docker) and prepare zip and tar.gz binary - you will be prompted for version again (use same version as the code - example 2.0.0) : 
 ```
 cd src
 ./prepareRelease.sh
 ```
 
-3- Create new release by uploading the tar.gz and zip files and using same version tag
-
+3- Create new release by uploading the tar.gz and zip files and using same version tag in GH GUI
 
 ## testing
 
