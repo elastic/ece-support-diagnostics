@@ -6,11 +6,10 @@ The support diagnostic utility is a bash script that you can use to gather ECE l
 
 ## How to use
 
-* download the [latest release](https://github.com/elastic/ece-support-diagnostics/releases/latest) - instructions match verion `2.0.0` and higher
-* copy to ECE host
+* download the [latest release](https://github.com/elastic/ece-support-diagnostics/releases/latest) - instructions match version `2.0.0` and higher
+* copy to ECE host and unpack
 * run as ECE installation owner.
-* using options that make use of REST calls ( `-de`, `-c` ) will require ECE user credentials (`-u readonly <-p optional-noprompt-password>`), default APIs will also run
-* note `curl` is required when using REST related calls ( -u options )
+* using options that make use of REST calls ( `-de`, `-c` ) will require ECE user credentials (`-u readonly <-p optional-noprompt-password>`), default APIs will also run. Note `curl` is required when using REST related calls ( -u options )
 * repeat for each ECE host relevant to the issue and all hosts with the director role (`-u`, `-c`, `-de` options should only be run once to save space as it queries APIs from coordinator)
 
 Comparing the state of a broken node with the state of the directors is often necessary to pinpoint where the root cause is and fixing the root cause will often allow other problems to self heal.
@@ -19,14 +18,11 @@ Comparing the state of a broken node with the state of the directors is often ne
 ## Sample execution
 
 ```
-$ ./ece-diagnostics.sh 
-ECE Diagnostics
 Usage: ./ece-diagnostics.sh [OPTIONS]
 
 Arguments:
 -s|--system #collects elastic logs and system information
 -d|--docker #collects docker information
--lh|--log-filter-hours #filter for log age in hours (default:72)
 -e|--ecehost #Specifies ip/hostname of an ECE coordinator (default:localhost)
 -y|--protocol <http/https> #Specifies use of http/https (default:http)
 -x|--port <port> #Specifies ECE port (default:12400)
@@ -40,17 +36,16 @@ Arguments:
 -o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)
 
 Optional arguments :
--lh|--log-filter-hours #oldest file to collect in hours (default:72)
+-lh|--log-filter-hours #oldest file to collect in hours (default:72). also applied to docker logs
 -p|--password <password> #omiting value or argument will prompt password
 -sp|--storage-path Optional - overrides storage path (default:/mnt/data/elastic and auto-detected from runner container inspect if folder does not exist). Works in conjunction with -s|--system
 
-Deprecated arguments :
+Deprecated argument :
 -a|--allocator #no action - allocator information is now collected by default
-
 
 Sample usage:
 "./ece-diagnostics.sh -d -s" #collects system and docker level info
-"./ece-diagnostics.sh -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects APIs information
+"./ece-diagnostics.sh -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects APIs information
 "./ece-diagnostics.sh -e 192.168.1.42 -x 12409 -u readonly " #collects API information using custom host and port, prompt for password
 "./ece-diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects cluster plan,info for the specified cluster ID
 ```
@@ -58,7 +53,7 @@ Sample usage:
 ## What flags to use?
 
 ### Basic
-The standard basic set of information (local system and docker level, and APIs output from coordinator) can be gathered with:
+The standard basic set of information (local system logs and docker level, and APIs output from coordinator) can be gathered with:
 
 ```
 ./ece-diagnostics.sh -d -s -u readonly -e coordinator
@@ -100,7 +95,7 @@ If you've installed ECE using a STORAGE_PATH different than default (`/mnt/data/
 ```
 ./ece-diagnostics.sh -d -s -sp /my/custom/storage/path
 ```
-Note : From ece diagnostics 2.0.0, storage path should be corrected automatically if the storage path folder does not exist
+Note : storage path should be corrected automatically if the storage path folder does not exist
 
 
 ## Output
