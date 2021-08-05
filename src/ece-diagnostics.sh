@@ -154,7 +154,11 @@ get_mntr_ZK(){
 get_certificate_srv(){
         if [[ -f "$DIR"/displaySrvCertExpiration ]]; then
                 print_msg "Getting certificate expiration for [${ece_host}:12443]" "INFO"
-                bash -c "${DIR}/displaySrvCertExpiration -h ${ece_host} -p 12443 2>/dev/null" > "$elastic_folder"/certs/coordinator_12443.json
+                if [[ "$protocol" = "http" ]]; then
+                        bash -c "${DIR}/displaySrvCertExpiration -h ${ece_host} -p 12443 2>/dev/null" > "$elastic_folder"/certs/coordinator_12443.json
+                elif [[ "$protocol" = "https" ]]; then
+                        bash -c "${DIR}/displaySrvCertExpiration -h ${ece_host} -p "$ece_port" 2>/dev/null" > "$elastic_folder"/certs/coordinator_12443.json
+                fi
         else
                 print_msg "Binary missing [${DIR}/displaySrvCertExpiration]" "WARN"
         fi
