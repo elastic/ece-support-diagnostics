@@ -6,12 +6,12 @@ The support diagnostic utility is a bash script that you can use to gather ECE l
 
 ## How to use
 
-* download the [latest release](https://github.com/elastic/ece-support-diagnostics/releases/latest)
+* download the [latest release](https://github.com/elastic/ece-support-diagnostics/releases/latest) - instructions match verion `2.0.0` and higher
 * copy to ECE host
 * run as ECE installation owner.
-* using options that make use of REST calls ( -a, -c ) will require ECE user credentials (-u readonly -p \<password\>)
-* note `curl` is required when using REST related calls ( -a, -c options )
-* repeat for each ECE host relevant to the issue and all hosts with the director role 
+* using options that make use of REST calls ( `-de`, `-c` ) will require ECE user credentials (`-u readonly <-p optional-noprompt-password>`), default APIs will also run
+* note `curl` is required when using REST related calls ( -u options )
+* repeat for each ECE host relevant to the issue and all hosts with the director role (`-u`, `-c`, `-de` options should only be run once to save space as it queries APIs from coordinator)
 
 Comparing the state of a broken node with the state of the directors is often necessary to pinpoint where the root cause is and fixing the root cause will often allow other problems to self heal.
 
@@ -23,43 +23,45 @@ $ ./ece-diagnostics.sh
 ECE Diagnostics
 Usage: ./ece-diagnostics.sh [OPTIONS]
 
-Options:
--e|--ecehost #Specifies ip/hostname of the ECE (default:localhost)
--y|--protocol <http/https> #Specifies use of http/https (default:http)
--x|--port <port> #Specifies ECE port (default:12400)
+Arguments:
 -s|--system #collects elastic logs and system information
 -d|--docker #collects docker information
+-lh|--log-filter-hours #filter for log age in hours (default:72)
+-e|--ecehost #Specifies ip/hostname of an ECE coordinator (default:localhost)
+-y|--protocol <http/https> #Specifies use of http/https (default:http)
+-x|--port <port> #Specifies ECE port (default:12400)
+-u|--username <username> - will cause collection of data from ECE APIs
+-c|--cluster <clusterID> #collects elasticsearch cluster plan activity logs and restricts docker logs collection - from ECE 2.4.0, use -de|deployment instead
+-de|--deployment <deploymentID2,deploymentID2> #collects deployment historic plan activity logs (username required), comma separated values allowed (requires ECE versions 2.4.0 or higher)
 -zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents
 -zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)
 -zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle
 --zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks
--sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system
 -o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)
--c|--cluster <clusterID> #collects cluster plan and info for a given cluster (user/pass required). Also restricts -d|--docker action to a specific cluster
--a|--allocators #gathers allocators information (user/pass required)
--u|--username <username>
--p|--password <password>
 
+Optional arguments :
+-lh|--log-filter-hours #oldest file to collect in hours (default:72)
+-p|--password <password> #omiting value or argument will prompt password
+-sp|--storage-path Optional - overrides storage path (default:/mnt/data/elastic and auto-detected from runner container inspect if folder does not exist). Works in conjunction with -s|--system
+
+Deprecated arguments :
+-a|--allocator #no action - allocator information is now collected by default
 
 
 Sample usage:
 "./ece-diagnostics.sh -d -s" #collects system and docker level info
-"./ece-diagnostics.sh -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects allocators information
-"./ece-diagnostics.sh -e 192.168.1.42 -x 12409 -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects allocators information using custom host and port
-"./ece-diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -d -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects cluster plan,info and docker info only for the specified cluster ID
+"./ece-diagnostics.sh -a -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects APIs information
+"./ece-diagnostics.sh -e 192.168.1.42 -x 12409 -u readonly " #collects API information using custom host and port, prompt for password
 "./ece-diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects cluster plan,info for the specified cluster ID
-
-Tue Sep  5 13:16:56 CEST 2017 [INFO]:  ECE Diagnostics 
-Tue Sep  5 13:16:57 CEST 2017 [INFO]:  Nothing to do.
 ```
 
 ## What flags to use?
 
 ### Basic
-The standard basic set of information (system and docker level) can be gathered with:
+The standard basic set of information (local system and docker level, and APIs output from coordinator) can be gathered with:
 
 ```
-./ece-diagnostics.sh -d -s
+./ece-diagnostics.sh -d -s -u readonly -e coordinator
 ```
 
 ### Including Zookeeper contents for deep analysis
@@ -93,11 +95,12 @@ This behavior can be constrained so the bundle:
 :warning: By default, paths known to contain secrets or sensitive information have been excluded from the bundle. This protection can be deactivated, for those cases on which it is absolutely necessary, using the option `--zookeeper-excluded-insecure`. Please use this option with extreme caution and only when you are willing to show your passwords and certificates to the owner of the public PGP key.
 
 ### Using a custom storage path
-If you've installed ECE using a STORAGE_PATH different than default (`/mnt/data/elastic`), please make sure to pass the below flag to the diagnostics script:
+If you've installed ECE using a STORAGE_PATH different than default (`/mnt/data/elastic`),  you can pass the below flag to the diagnostics script:
 
 ```
 ./ece-diagnostics.sh -d -s -sp /my/custom/storage/path
 ```
+Note : From ece diagnostics 2.0.0, storage path should be corrected automatically if the storage path folder does not exist
 
 
 ## Output
