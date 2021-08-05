@@ -482,11 +482,11 @@ api_get_platform(){
         do_http_request GET "$protocol" /api/v1/platform "$ece_port" "" "$elastic_folder"/platform/platform.json
 }
 
-#compare 2 versions, -1 when lower, 1 when higher, 0 when equal
+#compare 2 versions, 0 when lower, 1 when equal, 2 when greater
 function vercomp () {
     if [[ $1 == $2 ]]
     then
-        return 0
+        return 1
     fi
     local IFS=.
     local i ver1=($1) ver2=($2)
@@ -504,13 +504,11 @@ function vercomp () {
         fi
         if ((10#${ver1[i]} > 10#${ver2[i]}))
         then
-            vercompare=1
-            return 1
+            return 2
         fi
         if ((10#${ver1[i]} < 10#${ver2[i]}))
         then
-            vercompare=-1
-            return -1
+            return 0
         fi
     done
     return 0
@@ -572,7 +570,7 @@ apis_deployments(){
         #this call return historical plan activity logs (can be many Mb per deployment)
         if [[ -n "$deployments" ]]; then
                 vercomp "$ece_version" '2.4.0'
-                if [[ $? -ge 0 ]]; then
+                if [[ $? -ge 1 ]]; then
                         deployments=($(printf "$deployments" | tr "," " "))
                         deploymentsLength=${#deployments[@]}
                         for ((i=0; i<deploymentsLength; i++))
@@ -616,21 +614,21 @@ run_apis(){
                                 run_api
                         else  #no min, max
                                 vercomp "$ece_version" "${api_max[$a]}"
-                                if [[ $? -le 0 ]]; then
+                                if [[ $? -le 1 ]]; then
                                         run_api
                                 fi
                         fi
                 else
                         if [[ -z "${api_max[$a]}" ]]; then #min, no max
                                 vercomp "$ece_version" "${api_min[$a]}"
-                                if [[ $? -ge 0 ]]; then
+                                if [[ $? -ge 1 ]]; then
                                         run_api
                                 fi
                         else  #min, max
                                 vercomp "$ece_version" "${api_max[$a]}"
-                                if [[ $? -le 0 ]]; then
+                                if [[ $? -le 1 ]]; then
                                         vercomp "$ece_version" "${api_min[$a]}"
-                                        if [[ $? -ge 0 ]]; then
+                                        if [[ $? -ge 1 ]]; then
                                                 run_api
                                         fi
                                 fi
@@ -839,7 +837,7 @@ runECEDiag(){
         fi
         #This code iterate deployment ids without plan activity logs (it uses output of another API hence code is run last)
         vercomp "$ece_version" 2.4.0
-        if [[ $? -ge 0 ]]; then
+        if [[ $? -ge 1 ]]; then
                 if [[ -f "${elastic_folder}/deployments/deployments.json" ]]; then
                         findIndentationDeploymentId
                         deployment_ids=$(grep -e "^${indentation}\\\"id\\\"" "${elastic_folder}/deployments/deployments.json" | cut -d '"' -f4)
