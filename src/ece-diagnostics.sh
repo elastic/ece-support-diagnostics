@@ -479,7 +479,7 @@ get_fs_permissions(){
 }
 
 api_get_platform(){
-        do_http_request GET "$protocol" /api/v1//platform "$ece_port" "" "$elastic_folder"/platform/platform.json
+        do_http_request GET "$protocol" /api/v1/platform "$ece_port" "" "$elastic_folder"/platform/platform.json
 }
 
 #compare 2 versions, -1 when lower, 1 when higher, 0 when equal
@@ -535,40 +535,40 @@ addApiCall(){
 apis_platform(){
         mkdir -p "${elastic_folder}/platform"
         # api_get_platform
-        do_http_request GET "$protocol" /api/v1//platform "$ece_port" "" "$elastic_folder"/platform/platform.json
+        do_http_request GET "$protocol" /api/v1/platform "$ece_port" "" "$elastic_folder"/platform/platform.json
         extractPlatformVersion
         mkdir -p "${elastic_folder}/platform/license"
 
-        addApiCall '/api/v1//platform/license' "${elastic_folder}/platform/license/license.json" '2.0.0'
+        addApiCall '/api/v1/platform/license' "${elastic_folder}/platform/license/license.json" '2.0.0'
 
         mkdir -p "${elastic_folder}/platform/infrastructure"
         addApiCall '/api/v1/platform/infrastructure/allocators' "${elastic_folder}/platform/infrastructure/allocators.json" '2.0.0'
-        addApiCall '/api/v1//platform/infrastructure/blueprinter/roles' "${elastic_folder}/platform/infrastructure/roles.json" '2.3.0'
-        addApiCall '/api/v1//platform/infrastructure/constructors' "${elastic_folder}/platform/infrastructure/constructors.json" '2.2.0'
-        addApiCall '/api/v1//platform/infrastructure/proxies' "${elastic_folder}/platform/infrastructure/proxies.json" '2.2.0'
+        addApiCall '/api/v1/platform/infrastructure/blueprinter/roles' "${elastic_folder}/platform/infrastructure/roles.json" '2.3.0'
+        addApiCall '/api/v1/platform/infrastructure/constructors' "${elastic_folder}/platform/infrastructure/constructors.json" '2.2.0'
+        addApiCall '/api/v1/platform/infrastructure/proxies' "${elastic_folder}/platform/infrastructure/proxies.json" '2.2.0'
         addApiCall '/api/v1/platform/infrastructure/runners' "${elastic_folder}/platform/infrastructure/runners.json" '2.0.0'
 
         mkdir -p "${elastic_folder}/platform/configuration"
-        addApiCall '/api/v1//platform/configuration/instances?show_deleted=false' "${elastic_folder}/platform/configuration/instances.json" '2.0.0'
-        addApiCall '/api/v1//platform/configuration/templates/deployments?show_instance_configurations=false' "${elastic_folder}/platform/configuration/deployment_templates.json" '2.0.0'
-        addApiCall '/api/v1//platform/configuration/store' "${elastic_folder}/platform/configuration/store.json" '2.2.0'
-        addApiCall '/api/v1//platform/configuration/security/realms' "${elastic_folder}/platform/configuration/realms.json" '2.2.0'
-        # addApiCall '/api/v1//platform/configuration/security/deployment' "${elastic_folder}/platform/configuration/security.json"
+        addApiCall '/api/v1/platform/configuration/instances?show_deleted=false' "${elastic_folder}/platform/configuration/instances.json" '2.0.0'
+        addApiCall '/api/v1/platform/configuration/templates/deployments?show_instance_configurations=false' "${elastic_folder}/platform/configuration/deployment_templates.json" '2.0.0'
+        addApiCall '/api/v1/platform/configuration/store' "${elastic_folder}/platform/configuration/store.json" '2.2.0'
+        addApiCall '/api/v1/platform/configuration/security/realms' "${elastic_folder}/platform/configuration/realms.json" '2.2.0'
+        # addApiCall '/api/v1/platform/configuration/security/deployment' "${elastic_folder}/platform/configuration/security.json"
 }
 
 apis_stacks(){
         mkdir -p "${elastic_folder}/stacks"
-        addApiCall '/api/v1//stack/versions' "${elastic_folder}/stacks/versions.json" '2.0.0'
+        addApiCall '/api/v1/stack/versions' "${elastic_folder}/stacks/versions.json" '2.0.0'
 }
 
 apis_users(){
         mkdir -p "${elastic_folder}/users"
-        addApiCall '/api/v1//users' "${elastic_folder}/users/users.json" '2.4.0'
+        addApiCall '/api/v1/users' "${elastic_folder}/users/users.json" '2.4.0'
 }
 
 apis_deployments(){
         mkdir -p "${elastic_folder}/deployments"
-        addApiCall '/api/v1//deployments' "${elastic_folder}/deployments/deployments.json" '2.4.0'
+        addApiCall '/api/v1/deployments' "${elastic_folder}/deployments/deployments.json" '2.4.0'
         #this call return historical plan activity logs (can be many Mb per deployment)
         if [[ -n "$deployments" ]]; then
                 vercomp "$ece_version" '2.4.0'
@@ -577,7 +577,7 @@ apis_deployments(){
                         deploymentsLength=${#deployments[@]}
                         for ((i=0; i<deploymentsLength; i++))
                         do
-                                addApiCall "/api/v1//deployments/${deployments[$i]}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=true&show_plan_history=true&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=3&show_settings=true&enrich_with_template=true" "${elastic_folder}/deployments/${deployments[$i]}-detailed.json" '2.4.0'
+                                addApiCall "/api/v1/deployments/${deployments[$i]}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=true&show_plan_history=true&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=3&show_settings=true&enrich_with_template=true" "${elastic_folder}/deployments/${deployments[$i]}-detailed.json" '2.4.0'
                         done
                 else 
                         print_msg "-de|--deployment option has no effect prior to ECE 2.4.0, detected [${ece_version}], use -c|--cluster instead for ES cluster" "WARN"
@@ -846,7 +846,7 @@ runECEDiag(){
                         deployment_ids=(${deployment_ids})
                         for deployment_id in "${deployment_ids[@]}"
                         do
-                                do_http_request GET "$protocol" "/api/v1//deployments/${deployment_id}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=false&show_plan_history=false&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=0&show_settings=true&enrich_with_template=false" "$ece_port" "" "${elastic_folder}/deployments/${deployment_id}.json"
+                                do_http_request GET "$protocol" "/api/v1/deployments/${deployment_id}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=false&show_plan_history=false&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=0&show_settings=true&enrich_with_template=false" "$ece_port" "" "${elastic_folder}/deployments/${deployment_id}.json"
                         done
                 fi
         fi
