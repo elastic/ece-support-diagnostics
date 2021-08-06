@@ -386,22 +386,24 @@ do_http_request(){
         # echo "method[${method}] protocolrequest[${protocolrequest}] path[${path}] ece_port[${ece_port}] args[${args}] output_file[${output_file}]"
 
         #build request
-        request="curl -s -S -X$method -u $user:$password $protocolrequest://$ece_host:$ece_port$path -o $output_file"
+        request="curl -s -S -X${method} -u ${user}:${password} ${protocolrequest}://${ece_host}:${ece_port}${path} -o ${output_file}"
 
         #validation
         validate_http_creds
         if [[ -n $missing_creds ]]
                 then
-                        print_msg "Skipping HTTP request [ $path ] because of missing arguments [ $missing_creds ]" "WARN"
+                        print_msg "Skipping HTTP request [ ${path} ] because of missing arguments [ ${missing_creds} ]" "WARN"
                 else
-                        print_msg "Calling [$ece_host:$ece_port$path] with user [$user]" "INFO"
+                        print_msg "Calling [${ece_host}:${ece_port}${path}] with user [$user]" "INFO"
                         sleep 1
                         STDERR=$($request 2>&1)
                         if [ ! -s "$output_file" ]; then
                                 print_msg "Output from API call is empty - please ensure you are connecting to a coordinator node with -e" "ERROR"
                                 print_msg "${STDERR}" "ERROR"
                         elif grep -q "root.unauthenticated" "$output_file"; then
+                                print_msg "Diag bundle could not be generated !" "ERROR"
                                 print_msg "The supplied authentication is invalid - please use ECE admin user/pass" "ERROR"
+                                print_msg "Please fix credentials or omit APIs call by not specifying any username" "ERROR"
                                 clean
                                 exit
                         elif grep -q "clusters.cluster_not_found" "$output_file"; then
@@ -521,7 +523,7 @@ function vercomp () {
 extractPlatformVersion(){
         ece_version="$(grep version ${elastic_folder}/platform/platform.json | head -1 | cut -d ":" -f2 | cut -d '"' -f2)"
         if [[ ! "$ece_version" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
-                print_msg "Version could not be found [$ece_version]"
+                print_msg "Version could not be found [$ece_version]" "WARN"
                 ece_version=
         fi
 }
@@ -716,6 +718,9 @@ parseParams(){
                         -p|--password)
                                 #password for issuing HTTP requests
                                 if [ -n "$2" ]; then
+                                        if [[ -z "$user" ]]; then
+                                                print_msg "Password was provided without user - APIs will not run" "WARN"
+                                        fi
                                         password=$2
                                         shift
                                 fi
