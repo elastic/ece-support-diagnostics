@@ -6,7 +6,7 @@ The support diagnostic utility is a bash script that you can use to gather ECE l
 
 ## How to use
 
-* download the [latest release](https://github.com/elastic/ece-support-diagnostics/releases/latest) - instructions match version `2.0.0` and higher
+* download the [latest release -dist](https://github.com/elastic/ece-support-diagnostics/releases/latest) - instructions match version `2.x` and higher
 * copy to ECE host and unpack
 * run as ECE installation owner.
 * using options that make use of REST calls ( `-de`, `-c` ) will require ECE user credentials (`-u readonly <-p optional-noprompt-password>`), default APIs will also run. Note `curl` is required when using REST related calls ( -u options )
@@ -28,7 +28,7 @@ Arguments:
 -x|--port <port> #Specifies ECE port (default:12400)
 -u|--username <username> - will cause collection of data from ECE APIs
 -c|--cluster <clusterID> #collects elasticsearch cluster plan activity logs and restricts docker logs collection - from ECE 2.4.0, use -de|deployment instead
--de|--deployment <deploymentID2,deploymentID2> #collects deployment historic plan activity logs (username required), comma separated values allowed (requires ECE versions 2.4.0 or higher)
+-de|--deployment <deploymentID1,deploymentID2> #collects deployment historic plan activity logs (username required), comma separated values allowed (requires ECE versions 2.4.0 or higher)
 -zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents
 -zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)
 -zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle
@@ -48,6 +48,7 @@ Sample usage:
 "./ece-diagnostics.sh -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects APIs information
 "./ece-diagnostics.sh -e 192.168.1.42 -x 12409 -u readonly " #collects API information using custom host and port, prompt for password
 "./ece-diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects cluster plan,info for the specified cluster ID
+"./ece-diagnostics.sh -de e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects deployment clusters plan,info for the specified deployment ID (ECE 2.4+)
 ```
 
 ## What flags to use?
