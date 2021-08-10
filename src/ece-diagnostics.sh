@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ECE_DIAG_VERSION=2.0.0
+ECE_DIAG_VERSION=2.0.1
 
 setVariables(){
         #location of scripts
@@ -142,6 +142,8 @@ show_help(){
         echo "\"./diagnostics.sh -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects default ECE APIs information"
         echo "\"./diagnostics.sh -de e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects default APIs information plus deployment plan"
         echo ""
+        clean
+        exit
 }
 
 get_mntr_ZK(){
@@ -402,13 +404,18 @@ do_http_request(){
                                 print_msg "${STDERR}" "ERROR"
                         elif grep -q "root.unauthenticated" "$output_file"; then
                                 print_msg "Diag bundle could not be generated !" "ERROR"
-                                print_msg "The supplied authentication is invalid - please use ECE admin user/pass" "ERROR"
+                                print_msg "The supplied authentication is invalid - please use ECE readonly user/pass" "ERROR"
                                 print_msg "Please fix credentials or omit APIs call by not specifying any username" "ERROR"
                                 clean
                                 exit
                         elif grep -q "clusters.cluster_not_found" "$output_file"; then
                                 print_msg "Specified Cluster ID is invalid.  The Elasticsearch cluster ID can be found within the endpoint URL" "ERROR"
                         fi
+        fi
+
+        #removing any line containing certificate information from output for security deployment when using admin account (instead of the expected readonly)
+        if [[ "$(grep -c 'signing' ${output_file})" -gt 0 ]]; then
+                grep -v "signing" "$output_file" > "${output_path}/temp.json" && mv "${output_path}/temp.json" "$output_file"
         fi
 } 
 
@@ -712,6 +719,9 @@ parseParams(){
                                         die 'ERROR: "-u|--user" requires a username value.'
                                 else
                                         user=$2
+                                        if [[ "$user" = "admin" ]]; then
+                                                print_msg "Using -u|--username with value [admin] is not recommended, prefer [readonly] credentials" "WARN"
+                                        fi
                                         shift
                                 fi
                                 ;;
