@@ -410,6 +410,11 @@ do_http_request(){
                                 print_msg "Specified Cluster ID is invalid.  The Elasticsearch cluster ID can be found within the endpoint URL" "ERROR"
                         fi
         fi
+
+        #removing any line containing certificate information from output for security deployment when using admin account (instead of the expected readonly)
+        if [[ "$(grep -c 'signing' ${output_file})" -gt 0 ]]; then
+                grep -v "signing" "$output_file" > "${output_path}/temp.json" && mv "${output_path}/temp.json" "$output_file"
+        fi
 } 
 
 process_action(){
@@ -713,6 +718,9 @@ parseParams(){
                                 else
                                         user=$2
                                         shift
+                                        if [[ "$user" = "admin" ]]; then
+                                                print_msg "Using -u|--username with value [admin] is not recommended, prefer [readonly] credentials" "WARN"
+                                        fi
                                 fi
                                 ;;
                         -p|--password)
