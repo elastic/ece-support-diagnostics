@@ -251,11 +251,11 @@ get_docker(){
         if [[ -n "$1" ]]; then
                 #clusterId is passed as argument - filter on it
                 containersId=($(docker ps -a --format "{{.ID}}" --filter="name=$1"))
-                logNames=($(docker ps -a --format "{{.ID}}__{{.Names}}__{{.Image}}" --filter="name=$1"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g'))
+                logNames=($(docker ps -a --format "{{.ID}}__{{.Names}}" --filter="name=$1"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g'))
                 #consider all containers
         else
                 containersId=($(docker ps -a --format "{{.ID}}"))
-                logNames=($(docker ps -a --format "{{.ID}}__{{.Names}}__{{.Image}}"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g'))
+                logNames=($(docker ps -a --format "{{.ID}}__{{.Names}}"  | sed  's/docker\.elastic\.co\///g' | sed 's/[\:\.\/]/_/g'))
         fi
 
         print_msg "Grabbing docker logs..." "INFO"
