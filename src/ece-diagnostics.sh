@@ -9,6 +9,7 @@ setVariables(){
         output_path=/tmp
         diag_name=ece_diag_$(hostname)_$(date "+%d_%b_%Y_%H_%M_%S")
         diag_folder=$output_path/$diag_name
+        initiateLogFile
         elastic_folder=$diag_folder/elastic
         docker_folder=$diag_folder/docker
         docker_logs_folder=$docker_folder/logs
@@ -25,6 +26,8 @@ setVariables(){
         actions=
         storage_path=/mnt/data/elastic
         arr=0 #used to store APIs in 4 arrays
+        RED='\033[0;31m'
+        NC='\033[0m' # No Color
 } 
 
 setVariablesZK(){
@@ -530,7 +533,10 @@ function vercomp () {
 extractPlatformVersion(){
         ece_version="$(grep version ${elastic_folder}/platform/platform.json | head -1 | cut -d ":" -f2 | cut -d '"' -f2)"
         if [[ ! "$ece_version" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
-                print_msg "Version could not be found [$ece_version]" "WARN"
+                print_msg "Diagnostics execution failed !" "ERROR"
+                print_msg "Version could not be found [$ece_version]" "ERROR"
+                clean 
+                exit
                 ece_version=
         fi
 }
@@ -918,7 +924,5 @@ initiateLogFile(){
 setVariables
 
 parseParams "$@"
-
-initiateLogFile
 
 runECEDiag
