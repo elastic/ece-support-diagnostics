@@ -9,6 +9,7 @@ setVariables(){
         output_path=/tmp
         diag_name=ece_diag_$(hostname)_$(date "+%d_%b_%Y_%H_%M_%S")
         diag_folder=$output_path/$diag_name
+        initiateLogFile
         elastic_folder=$diag_folder/elastic
         docker_folder=$diag_folder/docker
         docker_logs_folder=$docker_folder/logs
@@ -25,6 +26,8 @@ setVariables(){
         actions=
         storage_path=/mnt/data/elastic
         arr=0 #used to store APIs in 4 arrays
+        RED='\033[0;31m'
+        NC='\033[0m' # No Color
 } 
 
 setVariablesZK(){
@@ -482,8 +485,11 @@ print_msg(){
                 then
                         sev="[${2}]"
         fi
-        echo "$(date) ${sev}:  ${1}" | tee -a "$diag_folder"/ece-diag.log
-
+        if [[ "$sev" = "[ERROR]" ]] || [[ "$sev" = "[WARN]" ]]; then
+                echo -e "${RED}$(date) ${sev}:  ${1}${NC}" | tee -a "$diag_folder"/ece-diag.log
+        else
+                echo "$(date) ${sev}:  ${1}" | tee -a "$diag_folder"/ece-diag.log
+        fi
 }
 
 get_fs_permissions(){
@@ -530,7 +536,10 @@ function vercomp () {
 extractPlatformVersion(){
         ece_version="$(grep version ${elastic_folder}/platform/platform.json | head -1 | cut -d ":" -f2 | cut -d '"' -f2)"
         if [[ ! "$ece_version" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
-                print_msg "Version could not be found [$ece_version]" "WARN"
+                print_msg "Diagnostics execution failed !" "ERROR"
+                print_msg "Version could not be found [$ece_version]" "ERROR"
+                clean 
+                exit
                 ece_version=
         fi
 }
@@ -676,18 +685,21 @@ parseParams(){
                                         die 'ERROR: "-sp|--storage-path" requires a valid full filesystem path to custom storage'
                                 else
                                         storage_path=$2
+                                        options="${options} -sp ${storage_path}"
                                         shift
                                 fi
                                 ;;
                         -s|--system)
                                 #gather system data
                                 actions="$actions system"
+                                options="${options} -s"
                                 ;;
                         -lh|--log-filter-hours)
                                 if [ -z "$2" ]; then
                                         die 'ERROR: "-sf|--log-filter-hours" requires a valid number of hours'
                                 else
                                         log_hours=$2
+                                        options="${options} -lh ${log_hours}"
                                         shift
                                 fi
                                 ;;
@@ -696,6 +708,7 @@ parseParams(){
                                         die 'ERROR: "-o|--output-path" requires a valid full filesystem path'
                                 else
                                         output_path=$2
+                                        options="${options} -o ${output_path}"
                                         diag_folder=$output_path/$diag_name
                                         elastic_folder=$diag_folder/elastic
                                         docker_folder=$diag_folder/docker
@@ -708,17 +721,20 @@ parseParams(){
                                         die 'ERROR: "-e|--ecehost" requires a hostname/ip value.'
                                 else
                                         ece_host=$2
+                                        options="${options} -e ${ece_host}"
                                         shift
                                 fi
                                 ;;
                         -a|--allocator)
                                 print_msg '"-a|--allocator" option is deprecated and will be collected'
+                                options="${options} -a"
                                 ;;
                         -u|--username)
                                 if [ -z "$2" ]; then
                                         die 'ERROR: "-u|--user" requires a username value.'
                                 else
                                         user=$2
+                                        options="${options} -u ${user}"
                                         if [[ "$user" = "admin" ]]; then
                                                 print_msg "Using -u|--username with value [admin] is not recommended, prefer [readonly] credentials" "WARN"
                                         fi
@@ -740,18 +756,21 @@ parseParams(){
                                         die 'ERROR: "-x|--port" requires a port value.'
                                 else
                                         ece_port=$2
+                                        options="${options} -x ${ece_port}"
                                         shift
                                 fi
                                 ;;
                         -d|--docker)
                                 #gather docker data
                                 actions="$actions docker"
+                                options="${options} -d"
                                 ;;
                         -de|--deployment)
                                 if [ -z "$2" ]; then
                                         die 'ERROR: "-de|--deployment" requires a value (comma separated for multiple deployment IDs)'
                                 else
                                         deployments=$2
+                                        options="${options} -de ${deployments}"
                                         shift
                                 fi
                                 ;;
@@ -760,6 +779,7 @@ parseParams(){
                                         die 'ERROR: "-y|--protocol" requires a protocol value.'
                                 else
                                         protocol=$2
+                                        options="${options} -y ${protocol}"
                                         shift
                                 fi
                                 ;;
@@ -768,6 +788,7 @@ parseParams(){
                                 die 'ERROR: "-c|--cluster" requires a clusterId value.'
                         else
                                 cluster_id=$2
+                                options="${options} -c ${cluster_id}"
                                 actions="$actions plan cluster_info"
                                 print_msg '"-c|--cluster" option is deprecated, prefer "-de|--deployment" instead' "WARN"
                                 shift
@@ -785,6 +806,7 @@ parseParams(){
                                 else
                                         setVariablesZK
                                         pgp_destination_keypath=$2
+                                        options="${options} -zk ${pgp_destination_keypath}"
                                         actions="$actions zookeeper"
                                         shift
                                 fi
@@ -795,6 +817,7 @@ parseParams(){
                                         die 'ERROR: This options requires a path string'
                                 else
                                         zk_root=$2
+                                        options="${options} -zk-path ${zk_root}"
                                         shift
                                 fi
                                 ;;
@@ -802,6 +825,7 @@ parseParams(){
                                 # Sets Zookeeper exclusion paths
                                 if [ -n "$2" ]; then
                                         zk_excluded="$zk_excluded,$2"
+                                        options="${options} -zk-excluded ${zk_excluded}"
                                         shift
                                 fi
                                 ;;
@@ -810,6 +834,7 @@ parseParams(){
                                 if [ -n "$2" ]; then
                                         print_msg "WARNING!! This option may lead to the inclusion of secrets and sensitive information within the bundle."
                                         zk_excluded="$2"
+                                        options="${options} --zookeeper-excluded-insecure ${zk_excluded}"
                                         shift
                                 fi
                                 ;;
@@ -825,6 +850,7 @@ parseParams(){
                         esac
                         shift
                 done
+                print_msg "Options used : ${options}" "INFO"
         fi
         if [[ -n "$user" ]] && [[ -z "$password" ]]; then
                 promptPassword
@@ -901,7 +927,5 @@ initiateLogFile(){
 setVariables
 
 parseParams "$@"
-
-initiateLogFile
 
 runECEDiag
