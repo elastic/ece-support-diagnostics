@@ -485,8 +485,11 @@ print_msg(){
                 then
                         sev="[${2}]"
         fi
-        echo "$(date) ${sev}:  ${1}" | tee -a "$diag_folder"/ece-diag.log
-
+        if [[ "$sev" = "[ERROR]" ]] || [[ "$sev" = "[WARN]" ]]; then
+                echo -e "${RED}$(date) ${sev}:  ${1}${NC}" | tee -a "$diag_folder"/ece-diag.log
+        else
+                echo "$(date) ${sev}:  ${1}" | tee -a "$diag_folder"/ece-diag.log
+        fi
 }
 
 get_fs_permissions(){
