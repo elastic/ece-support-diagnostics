@@ -6,7 +6,7 @@ The support diagnostic utility is a bash script that you can use to gather ECE l
 
 ## How to use
 
-* download the [latest release -dist](https://github.com/elastic/ece-support-diagnostics/releases/latest) - instructions match version `2.x` and higher
+* download the [latest release -dist.tar.gz or -dist.zip](https://github.com/elastic/ece-support-diagnostics/releases/latest) - instructions match version `2.x` and higher (do not download source code)
 * copy to ECE host and unpack
 * run as ECE installation owner.
 * using options that make use of REST calls ( `-de`, `-c` ) will require ECE user credentials (`-u readonly <-p optional-noprompt-password>`), default APIs will also run. Note `curl` is required when using REST related calls ( -u options )
