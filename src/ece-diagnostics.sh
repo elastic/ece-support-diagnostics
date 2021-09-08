@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ECE_DIAG_VERSION=2.0.1
+ECE_DIAG_VERSION=2.0.2
 
 setVariables(){
         #location of scripts
@@ -426,7 +426,6 @@ process_action(){
         while :; do
                 case $1 in
                 system)
-                        verifyStoragePath
                         create_folders system
                         get_system
                         ;;
@@ -927,5 +926,7 @@ initiateLogFile(){
 setVariables
 
 parseParams "$@"
+
+verifyStoragePath
 
 runECEDiag
