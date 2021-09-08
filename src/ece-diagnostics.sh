@@ -426,7 +426,6 @@ process_action(){
         while :; do
                 case $1 in
                 system)
-                        verifyStoragePath
                         create_folders system
                         get_system
                         ;;
@@ -927,5 +926,7 @@ initiateLogFile(){
 setVariables
 
 parseParams "$@"
+
+verifyStoragePath
 
 runECEDiag
