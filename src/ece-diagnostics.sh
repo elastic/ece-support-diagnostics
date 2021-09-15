@@ -417,7 +417,7 @@ do_http_request(){
                                 print_msg "${STDERR}" "ERROR"
                         elif grep -q "root.unauthenticated" "$output_file"; then
                                 print_msg "Diag bundle could not be generated !" "ERROR"
-                                print_msg "The supplied authentication is invalid - please use ECE readonly user/pass" "ERROR"
+                                print_msg "The supplied authentication is invalid - please use readonly user (or admin user)" "ERROR"
                                 print_msg "Please fix credentials or omit APIs call by not specifying any username" "ERROR"
                                 clean
                                 exit
