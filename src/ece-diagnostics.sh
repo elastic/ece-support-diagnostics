@@ -127,6 +127,8 @@ show_help(){
         echo "Options:"
         echo "-e|--ecehost #Specifies ip/hostname of the ECE Coordinator (default:localhost)"
         echo "-y|--protocol <http/https> #Specifies use of http/https (default:http)"
+        echo "-k|--insecure #Bypass certificate validity checks when using https"
+        echo "-ca|--cacert /path/ca.pem #Specify CA certificate when using https"
         echo "-x|--port <port> #Specifies ECE port (default:12400)"
         echo "-s|--system #collects elastic logs and system information"
         echo "-d|--docker #collects docker information"
@@ -393,6 +395,14 @@ do_http_request(){
         #build request
         request="curl -s -S -X${method} -u ${user}:${password} ${protocolrequest}://${ece_host}:${ece_port}${path} -o ${output_file}"
 
+        if [[ "$insecure" = true ]]; then
+                request="${request} -k"
+        fi
+
+        if [[ -n "$cacert" ]]; then
+                request="${request} --cacert ${cacert}"
+        fi
+
         #validation
         validate_http_creds
         if [[ -n $missing_creds ]]
@@ -407,7 +417,7 @@ do_http_request(){
                                 print_msg "${STDERR}" "ERROR"
                         elif grep -q "root.unauthenticated" "$output_file"; then
                                 print_msg "Diag bundle could not be generated !" "ERROR"
-                                print_msg "The supplied authentication is invalid - please use ECE readonly user/pass" "ERROR"
+                                print_msg "The supplied authentication is invalid - please use readonly user (or admin user)" "ERROR"
                                 print_msg "Please fix credentials or omit APIs call by not specifying any username" "ERROR"
                                 clean
                                 exit
@@ -779,6 +789,23 @@ parseParams(){
                                 else
                                         protocol=$2
                                         options="${options} -y ${protocol}"
+                                        shift
+                                fi
+                                ;;
+                        -k|--insecure)
+                                insecure=true
+                                options="${options} -k"
+                                ;;
+                        -ca|--cacert)
+                                if [ -z "$2" ]; then
+                                        die 'ERROR: "-ca|--cacert" requires a valid ca certificate file.'
+                                else
+                                        cacert=$2
+                                        options="${options} -ca ${cacert}"
+                                        if [[ ! -f "$cacert" ]]; then
+                                                print_msg "Specified CA file not found [${cacert}]" "WARN"
+                                                cacert=
+                                        fi
                                         shift
                                 fi
                                 ;;
