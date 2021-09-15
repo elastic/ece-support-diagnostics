@@ -25,6 +25,8 @@ Arguments:
 -d|--docker #collects docker information
 -e|--ecehost #Specifies ip/hostname of an ECE coordinator (default:localhost)
 -y|--protocol <http/https> #Specifies use of http/https (default:http)
+-k|--insecure #Bypass certificate validity checks when using https
+-ca|--cacert /path/ca.pem #Specify CA certificate when using https
 -x|--port <port> #Specifies ECE port (default:12400)
 -u|--username <username> - will cause collection of data from ECE APIs
 -c|--cluster <clusterID> #collects elasticsearch cluster plan activity logs and restricts docker logs collection - from ECE 2.4.0, use -de|deployment instead
