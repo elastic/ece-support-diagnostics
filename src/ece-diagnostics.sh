@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ECE_DIAG_VERSION=2.0.2
+ECE_DIAG_VERSION=2.0.3
 
 setVariables(){
         #location of scripts
@@ -203,20 +203,25 @@ get_system(){
         top -n1 -b > "$elastic_folder"/top.txt
         ps -eaf > "$elastic_folder"/ps.txt
         df -h > "$elastic_folder"/df.txt
-        sudo dmesg --ctime > "$elastic_folder"/dmesg.txt
 
         #network
         sleep 1
         print_msg "Gathering network info..." "INFO"
         sleep 1
-        sudo netstat -anp > "$elastic_folder"/netstat_all.txt 2>&1
-        sudo netstat -ntulpn > "$elastic_folder"/netstat_listening.txt 2>&1
-        sudo iptables -L > "$elastic_folder"/iptables.txt 2>&1
-        sudo route -n > "$elastic_folder/"routes.txt 2>&1
 
-        #mounts
-        sudo mount > "$elastic_folder"/mounts.txt 2>&1
-        sudo cat /etc/fstab > "$elastic_folder"/fstab.txt 2>&1
+        #sudo calls should be located here so they can be disabled
+        if [[ -z "$disableSudoCalls" ]]; then
+                #system info
+                sudo dmesg --ctime > "$elastic_folder"/dmesg.txt
+                #network
+                sudo netstat -anp > "$elastic_folder"/netstat_all.txt 2>&1
+                sudo netstat -ntulpn > "$elastic_folder"/netstat_listening.txt 2>&1
+                sudo iptables -L > "$elastic_folder"/iptables.txt 2>&1
+                sudo route -n > "$elastic_folder/"routes.txt 2>&1
+                #mounts
+                sudo mount > "$elastic_folder"/mounts.txt 2>&1
+                sudo cat /etc/fstab > "$elastic_folder"/fstab.txt 2>&1
+        fi
 
         #fs permissions
         get_fs_permissions
@@ -702,6 +707,12 @@ parseParams(){
                                 #gather system data
                                 actions="$actions system"
                                 options="${options} -s"
+                                ;;
+                        -ds|--disable-sudo)
+                                #disable sudo calls
+                                disableSudoCalls=true
+                                print_msg "Disabling sudo calls is not recommended" "WARN"
+                                options="${options} --disable-sudo"
                                 ;;
                         -lh|--log-filter-hours)
                                 if [ -z "$2" ]; then

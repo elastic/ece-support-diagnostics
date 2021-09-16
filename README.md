@@ -41,6 +41,7 @@ Optional arguments :
 -lh|--log-filter-hours #oldest file to collect in hours (default:72). also applied to docker logs
 -p|--password <password> #omiting value or argument will prompt password
 -sp|--storage-path Optional - overrides storage path (default:/mnt/data/elastic and auto-detected from runner container inspect if folder does not exist). Works in conjunction with -s|--system
+-ds|--disable-sudo #to disable all sudo calls when using option -s|--system
 
 Deprecated argument :
 -a|--allocator #no action - allocator information is now collected by default
