@@ -746,7 +746,7 @@ parseParams(){
                                 fi
                                 ;;
                         -a|--allocator)
-                                print_msg '"-a|--allocator" option is deprecated and will be collected'
+                                print_msg '"-a|--allocator" option is deprecated and will be collected' "WARN"
                                 options="${options} -a"
                                 ;;
                         -u|--username)
@@ -869,7 +869,7 @@ parseParams(){
                         --zookeeper-excluded-insecure)
                                 # Sets Zookeeper exclusion paths removing defaults Secret/Sensitive exclusions
                                 if [ -n "$2" ]; then
-                                        print_msg "WARNING!! This option may lead to the inclusion of secrets and sensitive information within the bundle."
+                                        print_msg "This option may lead to the inclusion of secrets and sensitive information within the bundle." "WARN"
                                         zk_excluded="$2"
                                         options="${options} --zookeeper-excluded-insecure ${zk_excluded}"
                                         shift
