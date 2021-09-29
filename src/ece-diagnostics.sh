@@ -216,7 +216,8 @@ get_system(){
                 #network
                 sudo netstat -anp > "$elastic_folder"/netstat_all.txt 2>&1
                 sudo netstat -ntulpn > "$elastic_folder"/netstat_listening.txt 2>&1
-                sudo iptables -L > "$elastic_folder"/iptables.txt 2>&1
+                sudo iptables -L -v -n > "$elastic_folder"/iptables.txt 2>&1
+                sudo ip rule show > "$elastic_folder"/ip_routing_tables.txt 2>&1
                 sudo route -n > "$elastic_folder/"routes.txt 2>&1
                 #mounts
                 sudo mount > "$elastic_folder"/mounts.txt 2>&1
