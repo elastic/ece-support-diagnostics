@@ -350,6 +350,7 @@ get_zookeeper(){
         # Note that this is the directory (sibling to $elastic_folder) which will contain the clear temporary
         # ZK bundle in clear text prior to encryption. It will be deleted automatically.
         zookeeper_cleartext_folder=$(mktemp -d $elastic_folder/../zookeeper_dump_temporary.XXXX)
+        chmod 777 "$zookeeper_cleartext_folder"
 
         #Collect result at $zookeeper_cleartext_folder/zkdump.zip
         #This is done outside the bundle directory to avoid accidental inclusion of
