@@ -89,7 +89,7 @@ This behavior can be constrained so the bundle:
 
 **Note**: How the list of excluded trees is a comma separated list of ZK paths.
 
-:warning: Eagle-eyed readers have probably noticed that this functionality **requires a PGP public key**. ECE Zookeeper contents contain potentially secret and/or sensitive information. For this reason, the bundle **will never contain ZK contents in clear text**. The output will contain a PGP encrypted file which can only be read by the owner of the private key counterpart for the provided key.
+:warning: Eagle-eyed readers have probably noticed that this functionality **requires a PGP public key**. ECE Zookeeper contents contain potentially secret and/or sensitive information. For this reason, the bundle **will never contain ZK contents in clear text**. The output will contain a PGP encrypted file which can only be read by the owner of the private key counterpart for the provided key. Elastic Support will provide the key, when requesting this mode to be used.
 
 :warning: By default, paths known to contain secrets or sensitive information have been excluded from the bundle. This protection can be deactivated, for those cases on which it is absolutely necessary, using the option `--zookeeper-excluded-insecure`. Please use this option with extreme caution and only when you are willing to show your passwords and certificates to the owner of the public PGP key.
 
