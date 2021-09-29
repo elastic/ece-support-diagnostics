@@ -470,7 +470,7 @@ process_action(){
                                         if [ -n "$cluster_id" ]
                                                 then
                                                         create_folders cluster_info
-                                                        addApiCall "/api/v1/clusters/elasticsearch/${cluster_id}?show_metadata=false&show_plans=true&show_security=false" "${elastic_folder}/cluster_info/cluster_info_${cluster_id}.json" '2.0.0'
+                                                        addApiCall "/api/v1/clusters/elasticsearch/${cluster_id}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=true&show_system_alerts=3" "${elastic_folder}/cluster_info/cluster_info_${cluster_id}.json" '2.0.0'
                                                 else
                                                         print_msg "cannot fetch cluster info without specifying a cluster id. Use option -c|--cluster to specify a cluster ID" "WARN"
                                         fi
