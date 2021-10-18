@@ -23,14 +23,12 @@ Usage: ./ece-diagnostics.sh [OPTIONS]
 Arguments:
 -s|--system #collects elastic logs and system information
 -d|--docker #collects docker information
+-u|--username <username> - will cause collection of data from ECE APIs
 -e|--ecehost #Specifies ip/hostname of an ECE coordinator (default:localhost)
 -y|--protocol <http/https> #Specifies use of http/https (default:http)
 -k|--insecure #Bypass certificate validity checks when using https
 -ca|--cacert /path/ca.pem #Specify CA certificate when using https
 -x|--port <port> #Specifies ECE port (default:12400)
--u|--username <username> - will cause collection of data from ECE APIs
--c|--cluster <clusterID> #collects elasticsearch cluster plan activity logs and restricts docker logs collection - from ECE 2.4.0, use -de|deployment instead
--de|--deployment <deploymentID1,deploymentID2> #collects deployment historic plan activity logs (username required), comma separated values allowed (requires ECE versions 2.4.0 or higher)
 -zk|--zookeeper <path_to_dest_pgp_public_key> #enables ZK contents dump, requires a public PGP key to cipher the contents
 -zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)
 -zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle
@@ -38,20 +36,22 @@ Arguments:
 -o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)
 
 Optional arguments :
+-de|--deployment <deploymentID2,deploymentID2> #collects deployment historic plan activity logs (ECE username required), comma separated value allowed. Default to collecting for all unhealthy deployments, pass value "disabled" to not collect any deployment activity logs (requires ECE versions 2.4.0 or higher)
 -lh|--log-filter-hours #oldest file to collect in hours (default:72). also applied to docker logs
 -p|--password <password> #omiting value or argument will prompt password
 -sp|--storage-path Optional - overrides storage path (default:/mnt/data/elastic and auto-detected from runner container inspect if folder does not exist). Works in conjunction with -s|--system
 -ds|--disable-sudo #to disable all sudo calls when using option -s|--system
 
 Deprecated argument :
+-c|--cluster <clusterID> #collects elasticsearch cluster plan activity logs and restricts docker logs collection - from ECE 2.4.0, please use -de|deployment
 -a|--allocator #no action - allocator information is now collected by default
 
 Sample usage:
 "./ece-diagnostics.sh -d -s" #collects system and docker level info
 "./ece-diagnostics.sh -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects APIs information
 "./ece-diagnostics.sh -e 192.168.1.42 -x 12409 -u readonly " #collects API information using custom host and port, prompt for password
-"./ece-diagnostics.sh -c e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects cluster plan,info for the specified cluster ID
-"./ece-diagnostics.sh -de e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects deployment clusters plan,info for the specified deployment ID (ECE 2.4+)
+"./ece-diagnostics.sh -e 192.168.1.42 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" -c e817ac5fbc674aeab132500a263eca71 #collects cluster plan,info for the specified cluster ID
+"./ece-diagnostics.sh -de e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects deployment clusters plan,info for only the specified deployment ID (ECE 2.4+) - when -de is ommited plan activity logs will be collected for all unhealthy deployments
 ```
 
 ## What flags to use?

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ECE_DIAG_VERSION=2.0.3
+ECE_DIAG_VERSION=2.0.4
 
 setVariables(){
         #location of scripts
@@ -24,6 +24,7 @@ setVariables(){
         # cluster_id=
         missing_creds=
         actions=
+        deployments=
         storage_path=/mnt/data/elastic
         arr=0 #used to store APIs in 4 arrays
         RED='\033[0;31m'
@@ -138,7 +139,7 @@ show_help(){
         echo "--zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks"
         echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
         echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
-        echo "-de|--deployment <deploymentID2,deploymentID2> #collects deployment historic plan activity logs (ECE username required), comma separated value allowed to pass multiple deployments"
+        echo "-de|--deployment <deploymentID2,deploymentID2> #collects deployment historic plan activity logs (ECE username required), comma separated value allowed to pass multiple deployments. Default to collecting this for all unhealthy deployments, pass value \"-de disabled\" to not collect any deployment activity logs"
         echo "-u|--username <username>"
         echo "-p|--password <password>"
         echo ""
@@ -613,7 +614,9 @@ apis_deployments(){
                         deploymentsLength=${#deployments[@]}
                         for ((i=0; i<deploymentsLength; i++))
                         do
-                                addApiCall "/api/v1/deployments/${deployments[$i]}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=true&show_plan_history=true&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=3&show_settings=true&enrich_with_template=true" "${elastic_folder}/deployments/${deployments[$i]}-detailed.json" '2.4.0'
+                                if [[ ! "${deployments[$i]}" = "disabled" ]]; then
+                                        addApiCall "/api/v1/deployments/${deployments[$i]}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=true&show_plan_history=true&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=3&show_settings=true&enrich_with_template=true" "${elastic_folder}/deployments/${deployments[$i]}-detailed.json" '2.4.0'
+                                fi
                         done
                 else 
                         print_msg "-de|--deployment option has no effect prior to ECE 2.4.0, detected [${ece_version}], use -c|--cluster instead for ES cluster" "WARN"
@@ -929,6 +932,10 @@ runECEDiag(){
                         for deployment_id in "${deployment_ids[@]}"
                         do
                                 do_http_request GET "$protocol" "/api/v1/deployments/${deployment_id}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=false&show_plan_history=false&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=0&show_settings=true&enrich_with_template=false" "$ece_port" "" "${elastic_folder}/deployments/${deployment_id}.json"
+                                #collection of plan activity logs for unhealthy deployments when -de is not specified
+                                if [[ -z "$deployments" ]] && [[ "$(grep -ce '\"healthy\" : false,' ${elastic_folder}/deployments/${deployment_id}.json)" -gt 0 ]]; then
+                                        do_http_request GET "$protocol" "/api/v1/deployments/${deployment_id}?show_security=false&show_metadata=false&show_plans=true&show_plan_logs=true&show_plan_history=true&show_plan_defaults=false&convert_legacy_plans=false&show_system_alerts=0&show_settings=true&enrich_with_template=false" "$ece_port" "" "${elastic_folder}/deployments/${deployment_id}-detailed.json"
+                                fi
                         done
                 fi
         fi
