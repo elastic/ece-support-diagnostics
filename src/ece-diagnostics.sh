@@ -176,7 +176,7 @@ get_certificate_files(){
         if [[ -f "$DIR"/displayFileCertExpiration ]]; then
                 print_msg "Getting certificate expiration for PEM files" "INFO"
                 echo '[' > "${elastic_folder}/certs/pem_files_expiration.json"
-                find "$storage_path" -type f -name "*.pem" -exec "${DIR}"/displayFileCertExpiration -f \{\} >> "${elastic_folder}/certs/pem_files_expiration.json" \;
+                find "$storage_path" -type f \( -name "*.pem" -o -name "*.crt" \) -exec "${DIR}"/displayFileCertExpiration -f \{\} >> "${elastic_folder}/certs/pem_files_expiration.json" \;
                 #remove last character which may be a coma (to obtain valid json array) or newline in case of empty set
                 truncate -s-1 "${elastic_folder}/certs/pem_files_expiration.json"
                 echo ' ]' >> "${elastic_folder}/certs/pem_files_expiration.json"
