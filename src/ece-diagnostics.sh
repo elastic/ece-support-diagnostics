@@ -204,6 +204,7 @@ get_system(){
         top -n1 -b > "$elastic_folder"/top.txt
         ps -eaf > "$elastic_folder"/ps.txt
         df -h > "$elastic_folder"/df.txt
+        timedatectl > "$elastic_folder"/timedatectl.txt
 
         #network
         sleep 1
@@ -213,7 +214,7 @@ get_system(){
         #sudo calls should be located here so they can be disabled
         if [[ -z "$disableSudoCalls" ]]; then
                 #system info
-                sudo dmesg --ctime > "$elastic_folder"/dmesg.txt
+                sudo dmesg --ctime > "$elastic_folder"/dmesg-localTZ.txt
                 #network
                 sudo netstat -anp > "$elastic_folder"/netstat_all.txt 2>&1
                 sudo netstat -ntulpn > "$elastic_folder"/netstat_listening.txt 2>&1
