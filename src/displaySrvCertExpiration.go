@@ -13,6 +13,7 @@ type Certificate struct {
 	port string
 	Subject string
 	Issuer string
+	NotBefore string
 	NotAfter string
 	message string
 }
@@ -40,7 +41,7 @@ func main() {
 		fmt.Printf(`{ "hostname" : "` + hname + `", "port" : "` + pname + `"` + ", \"message\" : \"Server doesn't support SSL certificate [" + removeLBR(err.Error()) + "]\"}\n")
 
 	} else {
-		certificate := Certificate{hostname: hname, port: pname, Issuer: conn.ConnectionState().PeerCertificates[0].Issuer.String(), NotAfter: conn.ConnectionState().PeerCertificates[0].NotAfter.String()}
+		certificate := Certificate{hostname: hname, port: pname, Issuer: conn.ConnectionState().PeerCertificates[0].Issuer.String(), NotBefore: conn.ConnectionState().PeerCertificates[0].NotBefore.String(), NotAfter: conn.ConnectionState().PeerCertificates[0].NotAfter.String()}
  
 		res, err := json.Marshal(certificate)
 		     
