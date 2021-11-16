@@ -625,6 +625,17 @@ apis_deployments(){
         fi
 }
 
+apis_clusters_legacy(){
+        #only running for ECE versions below 2.4.0 (min version for v1 APIs 2.0.0)
+        vercomp "$ece_version" '2.4.0'
+        if [[ $? -eq 0 ]]; then
+                mkdir -p "${elastic_folder}/clusters"
+                addApiCall "/api/v1/clusters/elasticsearch?from=0&size=100&show_security=false&show_metadata=false&show_plans=false&show_plan_defaults=false&convert_legacy_plans=false&enrich_with_template=false&show_system_alerts=3&show_hidden=false&show_settings=false" "${elastic_folder}/clusters/es-clusters.json" '2.0.0' '2.3.2'
+                addApiCall "/api/v1/clusters/kibana?from=0&size=100&show_metadata=false&show_plans=false&show_hidden=false&show_plan_defaults=false" "${elastic_folder}/clusters/kibana-clusters.json" '2.0.0' '2.3.2'
+        fi
+}
+
+
 apis_v0(){
         mkdir -p "${elastic_folder}/v0containersets"
         addApiCall '/api/v0/regions/ece-region/container-sets/allocators' "${elastic_folder}/v0containersets/allocators.json"
@@ -638,6 +649,7 @@ prepare_apis_arrays(){
         apis_stacks
         apis_users
         apis_deployments
+        apis_clusters_legacy
         apis_v0
 }
 
