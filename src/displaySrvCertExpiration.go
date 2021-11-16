@@ -5,7 +5,19 @@ import (
 	"crypto/tls"
 	"fmt"
 	"regexp"
+	"encoding/json"
 )
+
+type Certificate struct {
+	hostname string
+	port string
+	Subject string
+	Issuer string
+	NotBefore string
+	NotAfter string
+	DNSNames []string
+	message string
+}
 
 // Usage : displaySrvCertExpiration -h "coordinator.domain" -p 12443
 
@@ -21,16 +33,23 @@ func main() {
     flag.StringVar(&pname, "p", "12443", "Specify port. Default is 12443")
     flag.Parse() 
 
-    fmt.Printf(`{ "hostname" : "` + hname + `", "port" : "` + pname + `"`)
+    // fmt.Printf(`{ "hostname" : "` + hname + `", "port" : "` + pname + `"`)
     conf := &tls.Config{
 	    InsecureSkipVerify: true,
 	}
 	conn, err := tls.Dial("tcp", hname + ":" + pname, conf)
 	if err != nil {
-		fmt.Printf(", \"message\" : \"Server doesn't support SSL certificate err:\\n" + removeLBR(err.Error()) + `"`)
+		fmt.Printf(`{ "hostname" : "` + hname + `", "port" : "` + pname + `"` + ", \"message\" : \"Server doesn't support SSL certificate [" + removeLBR(err.Error()) + "]\"}\n")
+
 	} else {
-		expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
-		fmt.Printf(", \"Issuer\": \"%s\", \"NotAfter\": \"%v\"", conn.ConnectionState().PeerCertificates[0].Issuer, expiry)
+		certificate := Certificate{hostname: hname, port: pname, Issuer: conn.ConnectionState().PeerCertificates[0].Issuer.String(), NotBefore: conn.ConnectionState().PeerCertificates[0].NotBefore.String(), NotAfter: conn.ConnectionState().PeerCertificates[0].NotAfter.String(), DNSNames: conn.ConnectionState().PeerCertificates[0].DNSNames}
+ 
+		res, err := json.Marshal(certificate)
+		     
+		if err != nil {
+		    fmt.Println(err)
+		}
+		     
+		fmt.Printf("%s\n",res)
 	}
-	fmt.Printf(" }\n")
 }
