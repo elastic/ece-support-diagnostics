@@ -16,6 +16,7 @@ type Certificate struct {
 	Issuer string
 	NotBefore string
 	NotAfter string
+	DNSNames []string
 	message string
 }
 
@@ -60,7 +61,7 @@ func main() {
 				    fmt.Printf("%s,\n",res)
 	            }
 	            
-	            certificate := Certificate{filename: fpath, Issuer: cert.Issuer.String(), Subject: cert.Subject.String(), NotBefore: cert.NotBefore.String(), NotAfter: cert.NotAfter.String()}
+	            certificate := Certificate{filename: fpath, Issuer: cert.Issuer.String(), Subject: cert.Subject.String(), NotBefore: cert.NotBefore.String(), NotAfter: cert.NotAfter.String(), DNSNames: cert.DNSNames}
  
 				res, err := json.Marshal(certificate)
 				     
