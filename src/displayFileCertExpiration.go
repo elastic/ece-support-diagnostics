@@ -5,9 +5,18 @@ import (
 	"crypto/x509"
 	"fmt"
 	"encoding/pem"
+	"encoding/json"
 	"io/ioutil"
 	"os"
 )
+
+type Certificate struct {
+	filename string
+	Subject string
+	Issuer string
+	NotAfter string
+	message string
+}
 
 // Usage : displayFileCertExpiration -f "/location/cert.pem"
 
@@ -20,7 +29,16 @@ func main() {
 	if fpath != "notProvided" {
 		content, err := ioutil.ReadFile(fpath)
 		if err != nil {
-			fmt.Printf(`{ "filename" : "` + fpath + "\"message\" : \"could not read file\" }\n")
+
+			certificate := Certificate{filename: fpath, message: "could not read file"}
+ 
+			res, err := json.Marshal(certificate)
+		     
+		    if err != nil {
+		        fmt.Println(err)
+		    }
+		     
+		    fmt.Printf("%s,\n",res)
 			os.Exit(0)
 		}
 	    
@@ -30,10 +48,26 @@ func main() {
 	        	// Showing certificate information
 	            cert, err := x509.ParseCertificate(block.Bytes)
 	            if err != nil {
-	                fmt.Printf("\n{ \"filename\": \"%s\", \"message\" : \"could not parse certificate\" },")
+	            	certificate := Certificate{filename: fpath, message: "could not parse certificate"}
+ 
+					res, err := json.Marshal(certificate)
+				     
+				    if err != nil {
+				        fmt.Println(err)
+				    }
+				     
+				    fmt.Printf("%s,\n",res)
 	            }
 	            
-	            fmt.Printf("\n{ \"filename\": \"%s\", \"Issuer\" : \"%s\", \"Subject\" : \"%s\", \"NotAfter\" : \"%v\" },", fpath, cert.Issuer , cert.Subject, cert.NotAfter)
+	            certificate := Certificate{filename: fpath, Issuer: cert.Issuer.String(), Subject: cert.Subject.String(), NotAfter: cert.NotAfter.String()}
+ 
+				res, err := json.Marshal(certificate)
+				     
+			    if err != nil {
+			        fmt.Println(err)
+			    }
+				     
+			    fmt.Printf("%s,\n",res)
 
 	        default:
 	            //ignoring any other type of blocks
