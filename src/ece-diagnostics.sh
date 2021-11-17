@@ -224,6 +224,7 @@ get_system(){
                 #mounts
                 sudo mount > "$elastic_folder"/mounts.txt 2>&1
                 sudo cat /etc/fstab > "$elastic_folder"/fstab.txt 2>&1
+                sudo cat /etc/sysctl.conf > "$elastic_folder"/sysctl.txt 2>&1
         fi
 
         #fs permissions
