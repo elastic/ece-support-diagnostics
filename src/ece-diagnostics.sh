@@ -756,7 +756,7 @@ parseParams(){
                                 fi
                                 ;;
                         -e|--ecehost)
-                                if [ -z "$2" ]; then
+                                if [[ -z "$2" ]] || [[ "$2" = -* ]]; then
                                         die 'ERROR: "-e|--ecehost" requires a hostname/ip value.'
                                 else
                                         ece_host=$2
@@ -769,8 +769,8 @@ parseParams(){
                                 options="${options} -a"
                                 ;;
                         -u|--username)
-                                if [ -z "$2" ]; then
-                                        die 'ERROR: "-u|--user" requires a username value.'
+                                if [[ -z "$2" ]] || [[ "$2" = -* ]]; then
+                                        die 'ERROR: "-u|--user" requires a username (admin or readonlu).'
                                 else
                                         user=$2
                                         options="${options} -u ${user}"
