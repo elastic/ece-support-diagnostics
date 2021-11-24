@@ -555,11 +555,15 @@ function vercomp () {
 extractPlatformVersion(){
         ece_version="$(grep version ${elastic_folder}/platform/platform.json | head -1 | cut -d ":" -f2 | cut -d '"' -f2)"
         if [[ ! "$ece_version" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
-                print_msg "Diagnostics execution failed !" "ERROR"
-                print_msg "Version could not be found [$ece_version]" "ERROR"
-                clean 
-                exit
-                ece_version=
+                if [[ "$(grep -c 'controller_route.controller_not_ready' ${elastic_folder}/platform/platform.json)" -gt 0 ]]; then
+                        print_msg "Bypassing APIs; GET platform returned controller_route.controller_not_ready error" "WARN"
+                else
+                        print_msg "Diagnostics execution failed !" "ERROR"
+                        print_msg "Version could not be found [$ece_version]" "ERROR"
+                        clean 
+                        exit
+                        ece_version=
+                fi
         fi
 }
 
@@ -572,10 +576,6 @@ addApiCall(){
 }
 
 apis_platform(){
-        mkdir -p "${elastic_folder}/platform"
-        # api_get_platform
-        do_http_request GET "$protocol" /api/v1/platform "$ece_port" "" "$elastic_folder"/platform/platform.json
-        extractPlatformVersion
         mkdir -p "${elastic_folder}/platform/license"
 
         addApiCall '/api/v1/platform/license' "${elastic_folder}/platform/license/license.json" '2.0.0'
@@ -646,6 +646,11 @@ apis_v0(){
 
 prepare_apis_arrays(){
         #these just build list of APIs in 4 arrays : api_url, api_file, api_min, api_max
+        mkdir -p "${elastic_folder}/platform"
+        # api_get_platform
+        do_http_request GET "$protocol" /api/v1/platform "$ece_port" "" "$elastic_folder"/platform/platform.json
+        extractPlatformVersion
+
         apis_platform
         apis_stacks
         apis_users
