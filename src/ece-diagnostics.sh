@@ -145,8 +145,8 @@ show_help(){
         echo ""
         echo "Sample usage:"
         echo "\"./diagnostics.sh -d -s\" #collects system and docker level info"
-        echo "\"./diagnostics.sh -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects default ECE APIs information"
-        echo "\"./diagnostics.sh -de e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects default APIs information plus deployment plan"
+        echo "\"./diagnostics.sh -u admin -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects default ECE APIs information"
+        echo "\"./diagnostics.sh -de e817ac5fbc674aeab132500a263eca71 -u admin -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj\" #collects default APIs information plus deployment plan"
         echo ""
         clean
         exit
@@ -775,12 +775,12 @@ parseParams(){
                                 ;;
                         -u|--username)
                                 if [[ -z "$2" ]] || [[ "$2" = -* ]]; then
-                                        die 'ERROR: "-u|--user" requires a username (admin or readonlu).'
+                                        die 'ERROR: "-u|--user" requires a username (admin or readonly).'
                                 else
                                         user=$2
                                         options="${options} -u ${user}"
-                                        if [[ "$user" = "admin" ]]; then
-                                                print_msg "Using -u|--username with value [admin] is not recommended, prefer [readonly] credentials" "WARN"
+                                        if [[ "$user" = "readonly" ]]; then
+                                                print_msg "Using -u|--username with value [readonly] will cause v0 APIs to fail, prefer [admin] credentials" "WARN"
                                         fi
                                         shift
                                 fi
