@@ -791,8 +791,10 @@ parseParams(){
                                         if [[ -z "$user" ]]; then
                                                 print_msg "Password was provided without user - APIs will not run" "WARN"
                                         fi
-                                        password=$2
-                                        shift
+                                        if [[ ! "$2" = -* ]]; then
+                                                password=$2
+                                                shift
+                                        fi
                                 fi
                                 ;;
                         -x|--port)
