@@ -9,7 +9,7 @@ The support diagnostic utility is a bash script that you can use to gather ECE l
 * download the [latest release -dist.tar.gz or -dist.zip](https://github.com/elastic/ece-support-diagnostics/releases/latest) - instructions match version `2.x` and higher (do not download source code)
 * copy to ECE host and unpack
 * run as ECE installation owner.
-* using options that make use of REST calls ( `-de`, `-c` ) will require ECE user credentials (`-u readonly <-p optional-noprompt-password>`), default APIs will also run. Note `curl` is required when using REST related calls ( -u options )
+* using options that make use of REST calls ( `-de`, `-c` ) will require ECE user credentials (`-u admin <-p optional-noprompt-password>`), default APIs will also run. Note `curl` is required when using REST related calls ( -u options )
 * repeat for each ECE host relevant to the issue and all hosts with the director role (`-u`, `-c`, `-de` options should only be run once to save space as it queries APIs from coordinator)
 
 Comparing the state of a broken node with the state of the directors is often necessary to pinpoint where the root cause is and fixing the root cause will often allow other problems to self heal.
@@ -23,7 +23,7 @@ Usage: ./ece-diagnostics.sh [OPTIONS]
 Arguments:
 -s|--system #collects elastic logs and system information
 -d|--docker #collects docker information
--u|--username <username> - will cause collection of data from ECE APIs
+-u|--username <username> - will cause collection of data from ECE APIs (admin user recommended, readonly user will work for v1 APIs and fail for v0 APIs)
 -e|--ecehost #Specifies ip/hostname of an ECE coordinator (default:localhost)
 -y|--protocol <http/https> #Specifies use of http/https (default:http)
 -k|--insecure #Bypass certificate validity checks when using https
@@ -48,10 +48,10 @@ Deprecated argument :
 
 Sample usage:
 "./ece-diagnostics.sh -d -s" #collects system and docker level info
-"./ece-diagnostics.sh -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects APIs information
-"./ece-diagnostics.sh -e 192.168.1.42 -x 12409 -u readonly " #collects API information using custom host and port, prompt for password
-"./ece-diagnostics.sh -e 192.168.1.42 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" -c e817ac5fbc674aeab132500a263eca71 #collects cluster plan,info for the specified cluster ID
-"./ece-diagnostics.sh -de e817ac5fbc674aeab132500a263eca71 -u readonly -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects deployment clusters plan,info for only the specified deployment ID (ECE 2.4+) - when -de is ommited plan activity logs will be collected for all unhealthy deployments
+"./ece-diagnostics.sh -u admin -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects APIs information
+"./ece-diagnostics.sh -e 192.168.1.42 -x 12409 -u admin " #collects API information using custom host and port, prompt for password
+"./ece-diagnostics.sh -e 192.168.1.42 -u admin -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" -c e817ac5fbc674aeab132500a263eca71 #collects cluster plan,info for the specified cluster ID
+"./ece-diagnostics.sh -de e817ac5fbc674aeab132500a263eca71 -u admin -p oRXdD2tsLrEDelIF4iFAB6RlRzK6Rjxk3E4qTg27Ynj" #collects deployment clusters plan,info for only the specified deployment ID (ECE 2.4+) - when -de is ommited plan activity logs will be collected for all unhealthy deployments
 ```
 
 ## What flags to use?
@@ -60,7 +60,7 @@ Sample usage:
 The standard basic set of information (local system logs and docker level, and APIs output from coordinator) can be gathered with:
 
 ```
-./ece-diagnostics.sh -d -s -u readonly -e coordinator
+./ece-diagnostics.sh -d -s -u admin -e coordinator
 ```
 
 ### Including Zookeeper contents for deep analysis
