@@ -14,6 +14,7 @@ setVariables(){
         docker_folder=$diag_folder/docker
         docker_logs_folder=$docker_folder/logs
         zookeeper_folder=$elastic_folder/zookeeper_dump
+        zookeeper_stats_folder=$elastic_folder/zookeeper_stats
         log_hours=72
 
         ece_host=localhost
@@ -87,6 +88,9 @@ create_folders(){
                 cluster_info)
                         mkdir -p "$elastic_folder"/cluster_info/
                         ;;
+                zookeeper_stats)
+                        mkdir -p "$zookeeper_stats_folder"
+                        ;;
                 --) # End of all options.
                         shift
                         break
@@ -137,6 +141,7 @@ show_help(){
         echo "-zk-path|--zookeeper-path <zk_path_to_include> #selects the ZK sub-tree to dump using the provided path (e.g: /clusters)"
         echo "-zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle"
         echo "--zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks"
+        echo "--zk-stats|--zookeeper-stats #collects statistics on zookeeper contents and events"
         echo "-sp|--storage-path #overrides storage path (default:/mnt/data/elastic). Works in conjunction with -s|--system"
         echo "-o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)"
         echo "-de|--deployment <deploymentID2,deploymentID2> #collects deployment historic plan activity logs (ECE username required), comma separated value allowed to pass multiple deployments. Default to collecting this for all unhealthy deployments, pass value \"-de disabled\" to not collect any deployment activity logs"
@@ -382,6 +387,30 @@ get_zookeeper(){
         fi
 }
 
+get_zookeeper_stats(){
+        zk_data_path=$(find $storage_path -type d -wholename "*zookeeper/data" 2>/dev/null);
+
+        zkstat() {
+                docker run -v "$zookeeper_stats_folder":/target -v "$zk_data_path":/zk_data    \
+                        $(docker inspect -f '{{ range .HostConfig.ExtraHosts }} --add-host {{.}} {{ end }}' frc-directors-director) \
+                        --rm $(docker inspect -f '{{ .Config.Image }}' frc-directors-director) \
+                        java -jar /elastic_cloud_apps/tools/zkstat.jar $@;
+        }
+
+        print_msg "Collecting ZooKeeper nodes stats" "INFO"
+
+        stats_file="zk_stats.csv"
+        stats_container_path="/target/$stats_file"
+        zkstat node-stats /zk_data $stats_container_path
+        zkstat nodetype-stats-csv $stats_container_path /target/zk_nodetype_stats.csv
+        rm -f "$zookeeper_stats_folder/$stats_file"
+
+        print_msg "Collecting ZooKeeper translog" "INFO"
+        zkstat logs-stats /zk_data /target/translog.json
+
+        print_msg "Done collecting ZooKeeper stats" "INFO"
+}
+
 validate_http_creds(){
         if [ -z "$user" ]
                 then missing_creds="$missing_creds user"
@@ -484,6 +513,10 @@ process_action(){
                 zookeeper)
                         create_folders zookeeper
                         get_zookeeper "$pgp_destination_keypath" "$zk_root" "$zk_excluded"
+                        ;;
+                zk_stats)
+                        create_folders zookeeper_stats
+                        get_zookeeper_stats
                         ;;
                 --)              # End of all options.
                         shift
@@ -898,6 +931,11 @@ parseParams(){
                                         options="${options} --zookeeper-excluded-insecure ${zk_excluded}"
                                         shift
                                 fi
+                                ;;
+                        --zk-stats|--zookeeper-stats)
+                                # Gathers Zookeeper nodes statistics
+                                actions="$actions zk_stats"
+                                options="${options} --zk-stats"
                                 ;;
                         --)             # End of all options.
                                 shift
