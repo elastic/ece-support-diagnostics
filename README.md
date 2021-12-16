@@ -60,7 +60,7 @@ Sample usage:
 The standard basic set of information (local system logs and docker level, and APIs output from coordinator) can be gathered with:
 
 ```
-./ece-diagnostics.sh -d -s -u admin -e coordinator
+./ece-diagnostics.sh -d -s -u admin -e <IP or Hostname of coordinator>
 ```
 
 ### Including Zookeeper contents for deep analysis
