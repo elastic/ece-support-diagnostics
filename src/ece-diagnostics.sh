@@ -388,6 +388,14 @@ get_zookeeper(){
 }
 
 get_zookeeper_stats(){
+        # Check that the current ECE version supports ZK stats
+        docker run --rm "$(docker inspect -f '{{ .Config.Image }}' frc-directors-director)"  ls /elastic_cloud_apps/tools/zkstat.jar;
+
+        if [ "$?" -ne "0" ];
+                then
+                        die "ERROR: ECE Version 3.0 or higher is required"
+        fi
+
         zk_data_path=$(find $storage_path -type d -wholename "*zookeeper/data" 2>/dev/null);
 
         zkstat() {
