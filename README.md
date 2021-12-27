@@ -33,6 +33,7 @@ Arguments:
 -zk-path|--zookeeper-path <zk_path_to_include> #changes the path of the ZK sub-tree to dump (default: /)
 -zk-excluded|--zookeeper-excluded <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle
 --zookeeper-excluded-insecure <excluded_paths> #optional, comma separated list of sub-trees to exclude in the bundle WARNING: This options remove default filters aimed to avoid secrets and sensitive information leaks
+--zk-stats|--zookeeper-stats #collects statistics on zookeeper contents and events
 -o|--output-path #Specifies the output directory to dump the diagnostic bundles (default:/tmp)
 
 Optional arguments :
@@ -63,7 +64,56 @@ The standard basic set of information (local system logs and docker level, and A
 ./ece-diagnostics.sh -d -s -u admin -e <IP or Hostname of coordinator>
 ```
 
-### Including Zookeeper contents for deep analysis
+### Including ZooKeeper statistics to help diagnose problems
+
+Most investigations on ZooKeeper stability and availability issues require getting some stats on the ZooKeeper contents distributions (common node name patterns as used in ECE and the number of occurrences of these patterns) and a glimpse on the tail of the transaction log.
+
+It is possible to get this information for the ZooKeeper node running in a director node on which we can execute the ECE diagnostics tool. To do so, adding the following option is enough:
+
+```
+--zk-stats|--zookeeper-stats #collects statistics on zookeeper contents and events
+```
+
+e.g:
+
+```bash
+./ece-diagnostics.sh --zk-stats
+```
+
+Which will make the following files to be included in the output bundle:
+
+- The ZooKeeper node path patterns with the number of occurrences listed in CSV format: `elastic/zookeeper_stats/zk_nodetype_stats.csv` e.g:
+```
+path_type,ephemeral,count,count_ratio,size_min,size_max,size_mean,size_stddev,size_ratio,version_max,version_mean,version_stddev,ctime_min,mtime_max
+/blueprint/roles/{hostRole},false,6,0.014150943396226415,241,1004,476.33333333333337,305.38281986167243,0.005014835701840119,0,0.0,0.0,2021-12-13 08:24:55,2021-12-13 08:24:55
+/blueprint/roles/{hostRole}/blessings,false,4,0.009433962264150943,46,46,46.0,0.0,3.228585616300146E-4,0,0.0,0.0,2021-12-13 08:24:55,2021-12-13 08:26:09
+/blueprint/roles/{hostRole}/pending,true,4,0.009433962264150943,47,47,47.0,0.0,3.298772260132758E-4,2,1.25,0.5,2021-12-13 08:25:09,2021-12-13 08:26:09
+/config-store/{configName},false,6,0.014150943396226415,52,98,69.0,15.671630419327785,7.264317636675329E-4,0,0.0,0.0,2021-12-13 08:24:38,2021-12-13 08:29:31
+/container_sets/{containerSet},false,14,0.0330188679245283,17,17,17.0,0.0,4.1761053080404065E-4,0,0.0,0.0,2021-12-13 08:24:38,2021-12-13 08:24:39
+/container_sets/{containerSet}/containers,false,16,0.03773584905660377,10,10,10.0,0.0,2.8074657533044747E-4,0,0.0,0.0,2021-12-13 08:24:38,2021-12-13 08:24:39
+/container_sets/{containerSet}/containers/{container},false,16,0.03773584905660377,1295,3343,2167.6875000000005,606.3443156876023,0.06085708420116194,0,0.0,0.0,2021-12-13 08:24:38,2021-12-13 08:24:39
+/container_sets/{containerSet}/containers/{container}/allocation@{host},true,12,0.02830188679245283,14,14,14.0,0.0,2.947839040969699E-4,2,1.1666666666666667,0.38924947208076144,2021-12-13 08:24:56,2021-12-13 08:26:12
+/container_sets/{containerSet}/containers/{container}/inspect@{host},true,14,0.0330188679245283,6639,9965,8489.0,996.1174629530395,0.20853504682326476,4,2.0714285714285716,0.9972489631508747,2021-12-13 08:24:56,2021-12-13 08:32:58
+
+```
+
+- A NDJSON representation of the last events in the ZooKeeper translog: `elastic/zookeeper_stats/translog.json`
+```json
+{"@timestamp":"2021-12-13T08:24:36.442+0000","zxid":4294967298,"type":-10,"type_name":"CREATE_SESSION","path":"","path_type":"null","length":0}
+{"@timestamp":"2021-12-13T08:24:36.571+0000","zxid":4294967299,"type":15,"type_name":"CREATE2","path":"/v1","path_type":"","length":0}
+{"@timestamp":"2021-12-13T08:24:36.580+0000","zxid":4294967300,"type":15,"type_name":"CREATE2","path":"/v1/secrets","path_type":"/secrets","length":0}
+{"@timestamp":"2021-12-13T08:24:36.585+0000","zxid":4294967301,"type":15,"type_name":"CREATE2","path":"/v1/bootstrap","path_type":"/bootstrap","length":0}
+{"@timestamp":"2021-12-13T08:24:36.589+0000","zxid":4294967302,"type":15,"type_name":"CREATE2","path":"/v1/bootstrap/client","path_type":"/bootstrap/client","length":0}
+{"@timestamp":"2021-12-13T08:24:36.612+0000","zxid":4294967303,"type":-10,"type_name":"CREATE_SESSION","path":"","path_type":"null","length":0}
+{"@timestamp":"2021-12-13T08:24:36.652+0000","zxid":4294967304,"type":7,"type_name":"SET_ACL","path":"","path_type":"null","length":0}
+{"@timestamp":"2021-12-13T08:24:36.661+0000","zxid":4294967305,"type":7,"type_name":"SET_ACL","path":"","path_type":"null","length":0}
+{"@timestamp":"2021-12-13T08:24:36.665+0000","zxid":4294967306,"type":7,"type_name":"SET_ACL","path":"","path_type":"null","length":0}
+{"@timestamp":"2021-12-13T08:24:36.668+0000","zxid":4294967307,"type":7,"type_name":"SET_ACL","path":"","path_type":"null","length":0}
+
+```
+
+
+### Including ZooKeeper contents for deep analysis
 Some investigations require to have low level ECE details (stored in Zookeeper) at hand. It is possible to include this information in the bundle using:
 
 ```
