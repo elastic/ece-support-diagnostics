@@ -605,11 +605,15 @@ extractPlatformVersion(){
                 if [[ "$(grep -c 'controller_route.controller_not_ready' ${elastic_folder}/platform/platform.json)" -gt 0 ]]; then
                         print_msg "Bypassing APIs; GET platform returned controller_route.controller_not_ready error" "WARN"
                 else
-                        print_msg "Diagnostics execution failed !" "ERROR"
-                        print_msg "Version could not be found [$ece_version]" "ERROR"
-                        clean 
-                        exit
-                        ece_version=
+                        print_msg "Version could not be found [$ece_version] in platform.json[$(cat ${elastic_folder}/platform/platform.json)]" "WARN"
+                        ece_version=$(docker ps -a --filter "name=frc-runners-runner" --format "{{.Image}}" | rev | cut -d ':' -f1 | rev)
+                        if [[ ! "$ece_version" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+                                print_msg "Version could not be found [$ece_version] using frc-runners-runner image" "ERROR"
+                                print_msg "Cannot run APIs without version information so aborting diagnostics, run without -u to exlude APIs" "ERROR"
+                                clean 
+                                exit
+                                ece_version=
+                        fi
                 fi
         fi
 }
