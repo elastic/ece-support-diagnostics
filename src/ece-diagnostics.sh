@@ -473,9 +473,15 @@ do_http_request(){
                         fi
         fi
 
+        #Side note : the following may break json syntax
         #removing any line containing certificate information from output for security deployment when using admin account (instead of the expected readonly)
-        if [[ "$(grep -c 'signing' ${output_file})" -gt 0 ]]; then
+        if [[ "$(grep -c 'signing' "${output_file}")" -gt 0 ]]; then
                 grep -v "signing" "$output_file" > "${output_path}/temp.json" && mv "${output_path}/temp.json" "$output_file"
+        fi
+
+        #removing any line containing key for repository (example access_key or secret_key)
+        if [[ "$output_file" = "${elastic_folder}/platform/configuration/repositories.json" ]] && [[ "$(grep -c 'key' "${output_file}")" -gt 0 ]]; then
+                grep -v "key" "${output_file}" > "${output_path}/temp.json" && mv "${output_path}/temp.json" "${output_file}"
         fi
 } 
 
@@ -599,11 +605,15 @@ extractPlatformVersion(){
                 if [[ "$(grep -c 'controller_route.controller_not_ready' ${elastic_folder}/platform/platform.json)" -gt 0 ]]; then
                         print_msg "Bypassing APIs; GET platform returned controller_route.controller_not_ready error" "WARN"
                 else
-                        print_msg "Diagnostics execution failed !" "ERROR"
-                        print_msg "Version could not be found [$ece_version]" "ERROR"
-                        clean 
-                        exit
-                        ece_version=
+                        print_msg "Version could not be found [$ece_version] in platform.json[$(cat ${elastic_folder}/platform/platform.json)]" "WARN"
+                        ece_version=$(docker ps -a --filter "name=frc-runners-runner" --format "{{.Image}}" | rev | cut -d ':' -f1 | rev)
+                        if [[ ! "$ece_version" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+                                print_msg "Version could not be found [$ece_version] using frc-runners-runner image" "ERROR"
+                                print_msg "Cannot run APIs without version information so aborting diagnostics, run without -u to exlude APIs" "ERROR"
+                                clean 
+                                exit
+                                ece_version=
+                        fi
                 fi
         fi
 }
@@ -633,6 +643,7 @@ apis_platform(){
         addApiCall '/api/v1/platform/configuration/templates/deployments?show_instance_configurations=false' "${elastic_folder}/platform/configuration/deployment_templates.json" '2.0.0'
         addApiCall '/api/v1/platform/configuration/store' "${elastic_folder}/platform/configuration/store.json" '2.2.0'
         addApiCall '/api/v1/platform/configuration/security/realms' "${elastic_folder}/platform/configuration/realms.json" '2.2.0'
+        addApiCall '/api/v1/platform/configuration/snapshots/repositories' "${elastic_folder}/platform/configuration/repositories.json"
         # addApiCall '/api/v1/platform/configuration/security/deployment' "${elastic_folder}/platform/configuration/security.json"
 }
 
