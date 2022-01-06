@@ -473,9 +473,15 @@ do_http_request(){
                         fi
         fi
 
+        #Side note : the following may break json syntax
         #removing any line containing certificate information from output for security deployment when using admin account (instead of the expected readonly)
-        if [[ "$(grep -c 'signing' ${output_file})" -gt 0 ]]; then
+        if [[ "$(grep -c 'signing' "${output_file}")" -gt 0 ]]; then
                 grep -v "signing" "$output_file" > "${output_path}/temp.json" && mv "${output_path}/temp.json" "$output_file"
+        fi
+
+        #removing any line containing key for repository (example access_key or secret_key)
+        if [[ "$output_file" = "${elastic_folder}/platform/configuration/repositories.json" ]] && [[ "$(grep -c 'key' "${output_file}")" -gt 0 ]]; then
+                grep -v "key" "${output_file}" > "${output_path}/temp.json" && mv "${output_path}/temp.json" "${output_file}"
         fi
 } 
 
@@ -633,6 +639,7 @@ apis_platform(){
         addApiCall '/api/v1/platform/configuration/templates/deployments?show_instance_configurations=false' "${elastic_folder}/platform/configuration/deployment_templates.json" '2.0.0'
         addApiCall '/api/v1/platform/configuration/store' "${elastic_folder}/platform/configuration/store.json" '2.2.0'
         addApiCall '/api/v1/platform/configuration/security/realms' "${elastic_folder}/platform/configuration/realms.json" '2.2.0'
+        addApiCall '/api/v1/platform/configuration/snapshots/repositories' "${elastic_folder}/platform/configuration/repositories.json"
         # addApiCall '/api/v1/platform/configuration/security/deployment' "${elastic_folder}/platform/configuration/security.json"
 }
 
