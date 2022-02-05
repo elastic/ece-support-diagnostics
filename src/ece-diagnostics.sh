@@ -462,6 +462,13 @@ do_http_request(){
                         if [ ! -s "$output_file" ]; then
                                 print_msg "Output from API call is empty - please ensure you are connecting to a coordinator node with -e" "ERROR"
                                 print_msg "${STDERR}" "ERROR"
+                                if [[ "${ece_host}" = "localhost" ]]; then
+                                        if [[ $(docker ps -a | grep -c "frc-admin-consoles-admin-console") -eq 0 ]]; then
+                                                print_msg "APIs requested for ${protocolrequest}://localhost:${ece_port} but current host is not a coordinator" "ERROR"
+                                        fi
+                                fi
+                                clean
+                                exit
                         elif grep -q "root.unauthenticated" "$output_file"; then
                                 print_msg "Diag bundle could not be generated !" "ERROR"
                                 print_msg "The supplied authentication is invalid - please use readonly user (or admin user)" "ERROR"
