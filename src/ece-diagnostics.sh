@@ -186,7 +186,8 @@ get_certificate_files(){
                 truncate -s-1 "${elastic_folder}/certs/pem_files_expiration.json"
                 echo ' ]' >> "${elastic_folder}/certs/pem_files_expiration.json"
         else
-                print_msg "Binary missing [${DIR}/displayFileCertExpiration]" "WARN"
+                print_msg "Binary missing [${DIR}/displayFileCertExpiration]" "ERROR"
+                print_msg "Diagnostics is being executed from source code, please download file *-dist.* instead" "ERROR"
         fi
 }
 
