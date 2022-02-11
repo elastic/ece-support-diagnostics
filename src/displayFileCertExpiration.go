@@ -11,13 +11,12 @@ import (
 )
 
 type Certificate struct {
-	filename string
+	Filename string
 	Subject string
 	Issuer string
 	NotBefore string
 	NotAfter string
 	DNSNames []string
-	message string
 }
 
 // Usage : displayFileCertExpiration -f "/location/cert.pem"
@@ -32,7 +31,7 @@ func main() {
 		content, err := ioutil.ReadFile(fpath)
 		if err != nil {
 
-			certificate := Certificate{filename: fpath, message: "could not read file"}
+			certificate := Certificate{Filename: fpath}
  
 			res, err := json.Marshal(certificate)
 		     
@@ -50,7 +49,7 @@ func main() {
 	        	// Showing certificate information
 	            cert, err := x509.ParseCertificate(block.Bytes)
 	            if err != nil {
-	            	certificate := Certificate{filename: fpath, message: "could not parse certificate"}
+	            	certificate := Certificate{Filename: fpath}
  
 					res, err := json.Marshal(certificate)
 				     
@@ -60,8 +59,8 @@ func main() {
 				     
 				    fmt.Printf("%s,\n",res)
 	            }
-	            
-	            certificate := Certificate{filename: fpath, Issuer: cert.Issuer.String(), Subject: cert.Subject.String(), NotBefore: cert.NotBefore.String(), NotAfter: cert.NotAfter.String(), DNSNames: cert.DNSNames}
+
+	            certificate := Certificate{Filename: fpath, Issuer: cert.Issuer.String(), Subject: cert.Subject.String(), NotBefore: cert.NotBefore.String(), NotAfter: cert.NotAfter.String(), DNSNames: cert.DNSNames}
  
 				res, err := json.Marshal(certificate)
 				     
