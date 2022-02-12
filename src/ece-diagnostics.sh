@@ -183,7 +183,7 @@ get_certificate_files(){
                 echo '[' > "${elastic_folder}/certs/pem_files_expiration.json"
                 find "$storage_path" -type f \( -name "*.pem" -o -name "*.crt" \) -exec "${DIR}"/displayFileCertExpiration -f \{\} >> "${elastic_folder}/certs/pem_files_expiration.json" \;
                 #remove last character which may be a coma (to obtain valid json array) or newline in case of empty set
-                truncate -s-1 "${elastic_folder}/certs/pem_files_expiration.json"
+                truncate -s-2 "${elastic_folder}/certs/pem_files_expiration.json"
                 echo ' ]' >> "${elastic_folder}/certs/pem_files_expiration.json"
         else
                 print_msg "Binary missing [${DIR}/displayFileCertExpiration]" "ERROR"
