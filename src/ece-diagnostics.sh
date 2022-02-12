@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ECE_DIAG_VERSION=2.0.6
+ECE_DIAG_VERSION=2.0.7
 
 setVariables(){
         #location of scripts
@@ -183,10 +183,11 @@ get_certificate_files(){
                 echo '[' > "${elastic_folder}/certs/pem_files_expiration.json"
                 find "$storage_path" -type f \( -name "*.pem" -o -name "*.crt" \) -exec "${DIR}"/displayFileCertExpiration -f \{\} >> "${elastic_folder}/certs/pem_files_expiration.json" \;
                 #remove last character which may be a coma (to obtain valid json array) or newline in case of empty set
-                truncate -s-1 "${elastic_folder}/certs/pem_files_expiration.json"
+                truncate -s-2 "${elastic_folder}/certs/pem_files_expiration.json"
                 echo ' ]' >> "${elastic_folder}/certs/pem_files_expiration.json"
         else
-                print_msg "Binary missing [${DIR}/displayFileCertExpiration]" "WARN"
+                print_msg "Binary missing [${DIR}/displayFileCertExpiration]" "ERROR"
+                print_msg "Diagnostics is being executed from source code, please download file *-dist.* instead" "ERROR"
         fi
 }
 
