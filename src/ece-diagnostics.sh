@@ -648,7 +648,8 @@ apis_platform(){
 
         mkdir -p "${elastic_folder}/platform/configuration"
         addApiCall '/api/v1/platform/configuration/instances?show_deleted=false' "${elastic_folder}/platform/configuration/instances.json" '2.0.0'
-        addApiCall '/api/v1/platform/configuration/templates/deployments?show_instance_configurations=false' "${elastic_folder}/platform/configuration/deployment_templates.json" '2.0.0'
+        addApiCall '/api/v1/platform/configuration/templates/deployments?show_instance_configurations=false' "${elastic_folder}/platform/configuration/deployment_templates.json" '2.0.0' '2.5.1'
+        addApiCall '/api/v1/platform/configuration/templates/deployments?region=ece-region&show_instance_configurations=false' "${elastic_folder}/platform/configuration/deployment_templates.json" '2.6.0'
         addApiCall '/api/v1/platform/configuration/store' "${elastic_folder}/platform/configuration/store.json" '2.2.0'
         addApiCall '/api/v1/platform/configuration/security/realms' "${elastic_folder}/platform/configuration/realms.json" '2.2.0'
         addApiCall '/api/v1/platform/configuration/snapshots/repositories' "${elastic_folder}/platform/configuration/repositories.json"
