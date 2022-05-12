@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ECE_DIAG_VERSION=2.0.7
+ECE_DIAG_VERSION=2.0.8
 
 setVariables(){
         #location of scripts
