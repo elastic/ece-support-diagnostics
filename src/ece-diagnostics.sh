@@ -157,10 +157,47 @@ show_help(){
         exit
 }
 
-get_mntr_ZK(){
+get_zookeeper_mntr(){
         if [[ "$(docker ps -q --filter "name=frc-zookeeper-servers-zookeeper" | wc -l)" -eq 1 ]]; then
+                print_msg "Grabbing Zookeeper MNTR output" "INFO"
                 mkdir -p "$elastic_folder"
                 docker exec frc-zookeeper-servers-zookeeper sh -c 'for i in $(seq 2191 2199); do echo mntr | nc localhost ${i} 2>/dev/null; done' > "$elastic_folder"/zk_mntr.txt
+        fi
+}
+
+get_haproxy_details(){
+        if [[ "$(docker ps -q --filter "name=frc-services-forwarders-services-forwarder" | wc -l)" -eq 1 ]]; then
+                print_msg "Grabbing HAProxy details" "INFO"
+                mkdir -p "$elastic_folder"
+                docker exec frc-services-forwarders-services-forwarder sh -c 'echo show servers state | nc -U /app/data/haproxy/haproxy.sock | sed "s/^#//" | column -t' \
+                        > "$elastic_folder"/haproxy_servers_state.txt
+                docker cp frc-services-forwarders-services-forwarder:/app/managed/haproxy.cfg "$elastic_folder"/haproxy.cfg
+        fi
+}
+
+get_proxyv2_details(){
+        if [[ "$(docker ps -q --filter "name=frc-proxies-proxyv2" | wc -l)" -eq 1 ]]; then
+                print_msg "Grabbing proxy v2 details" "INFO"
+                mkdir -p "$elastic_folder"
+                # routes
+                docker exec frc-proxies-proxyv2 sh -c 'tar zcf /tmp/proxyv2_routes.tgz /dynamic_config/routes 2>/dev/null'
+                docker cp frc-proxies-proxyv2:/tmp/proxyv2_routes.tgz "$elastic_folder"/proxyv2_routes.tgz
+                docker exec frc-proxies-proxyv2 sh -c 'rm /tmp/proxyv2_routes.tgz'
+                # metrics
+                print_msg "Grabbing 2 repeated proxy v2 metrics (10s interval)..." "INFO"
+                print_msg "Grabbing proxy v2 metrics 1" "INFO"
+                docker exec frc-proxies-proxyv2 sh -c 'curl -s localhost:9000/metrics' > "$elastic_folder"/proxyv2_metrics_1.txt
+                sleep 10
+                print_msg "Grabbing proxy v2 metrics 2" "INFO"
+                docker exec frc-proxies-proxyv2 sh -c 'curl -s localhost:9000/metrics' > "$elastic_folder"/proxyv2_metrics_2.txt
+        fi
+}
+
+get_allocator_details(){
+        if [[ "$(docker ps -q --filter "name=frc-allocators-allocator" | wc -l)" -eq 1 ]]; then
+                print_msg "Grabbing allocator details" "INFO"
+                mkdir -p "$elastic_folder"
+                docker cp frc-allocators-allocator:/app/state/network.json "$elastic_folder"/allocator_network.json
         fi
 }
 
@@ -1026,7 +1063,10 @@ runECEDiag(){
                         done
                 fi
         fi
-        get_mntr_ZK
+        get_zookeeper_mntr
+        get_haproxy_details
+        get_proxyv2_details
+        get_allocator_details
         get_certificate_expiration
         create_archive && clean
 }
