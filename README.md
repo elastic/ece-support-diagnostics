@@ -1,5 +1,10 @@
 # ece-support-diagnostics
 
+## Note about built in ECE diagnostics tool
+
+Starting from ECE version 3.3, there is a built-in diagnostics tool shipped with every ECE release.
+If you are running ECE 3.3 or later, please follow the steps in the [ECE documentation](https://www.elastic.co/guide/en/cloud-enterprise/current/ece-run-ece-diagnostics.html#ece-run-ece-diagnostics) unless instructed otherwise. 
+
 ## Description
 
 The support diagnostic utility is a bash script that you can use to gather ECE logs, metrics and information directly on the the host where the ECE instance is running; the resulting archive file can be then provided to Elastic support for troubleshooting and investigation purposes.
