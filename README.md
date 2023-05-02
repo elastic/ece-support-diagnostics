@@ -1,6 +1,6 @@
 # ece-support-diagnostics
 
-## Note about built in ECE diagnostics tool
+## ⚠️ Note about built in ECE diagnostics tool
 
 Starting from ECE version 3.3, there is a built-in diagnostics tool shipped with every ECE release.
 If you are running ECE 3.3 or later, please follow the steps in the [ECE documentation](https://www.elastic.co/guide/en/cloud-enterprise/current/ece-run-ece-diagnostics.html#ece-run-ece-diagnostics) unless instructed otherwise. 
