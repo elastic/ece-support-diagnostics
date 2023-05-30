@@ -69,6 +69,31 @@ The standard basic set of information (local system logs and docker level, and A
 ./ece-diagnostics.sh -d -s -u admin -e <IP or Hostname of coordinator>
 ```
 
+### If there's an issue connecting to the Admin Console UI/API
+
+If there's any issue connecting to the Admin console/api you might see an error like:
+
+`[ERROR]: Output from API call is empty - please ensure you are connecting to a coordinator node with -e`
+
+First ensure you're connecting to an ECE runner with the coordinator role, if the current host is not a coordinator then you can use `-e` to point to a coordinator host.
+If you are pointing to a coordinator then there may be issues with the admin console preventing login.
+You can try a different coordinator host in case the current one has any issue.
+
+If no coordinator hosts are working, then in order to still collect detail in an ECE diagnostic, you can skip the diag logging into ECE and only collect docker info and logs on the current host via:
+
+```
+./ece-diagnostics.sh -d -s
+```
+
+or if docker info collection fails then try collecting only logs (system and docker container logs) via:
+
+
+```
+./ece-diagnostics.sh -s
+```
+
+This will still provide information about your ECE host that can be useful for troubleshooting.
+
 ### Including ZooKeeper statistics to help diagnose problems
 
 Most investigations on ZooKeeper stability and availability issues require getting some stats on the ZooKeeper contents distributions (common node name patterns as used in ECE and the number of occurrences of these patterns) and a glimpse on the tail of the transaction log.
