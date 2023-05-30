@@ -69,7 +69,7 @@ The standard basic set of information (local system logs and docker level, and A
 ./ece-diagnostics.sh -d -s -u admin -e <IP or Hostname of coordinator>
 ```
 
-### If the admin console is having problems then collect only logs and docker info
+### If there's an issue connecting to the Admin Console UI/API
 
 If there's any issue connecting to the Admin console/api you might see an error like:
 
